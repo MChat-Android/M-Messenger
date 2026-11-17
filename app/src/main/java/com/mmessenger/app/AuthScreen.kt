@@ -1,0 +1,163 @@
+
+package com.mmessenger.app
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+private val AuthBlue = Color(0xFF246BFD)
+
+@Composable
+fun AuthScreen(onContinueAsGuest: () -> Unit) {
+    var isRegister by remember { mutableStateOf(false) }
+    var email by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf("") }
+
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = Color(0xFFF7F9FE)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .background(AuthBlue, RoundedCornerShape(20.dp))
+                    .padding(horizontal = 25.dp, vertical = 12.dp)
+            ) {
+                Text(
+                    "M",
+                    color = Color.White,
+                    fontSize = 38.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(Modifier.height(18.dp))
+
+            Text(
+                "M Messenger",
+                fontSize = 27.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Text(
+                if (isRegister) "Buat akun baru" else "Selamat datang kembali",
+                color = Color.Gray
+            )
+
+            Spacer(Modifier.height(25.dp))
+
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Email") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email
+                )
+            )
+
+            if (isRegister) {
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = phone,
+                    onValueChange = { phone = it },
+                    label = { Text("Nomor telepon") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Phone
+                    )
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Kata sandi") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                visualTransformation = PasswordVisualTransformation()
+            )
+
+            if (isRegister) {
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = { confirmPassword = it },
+                    label = { Text("Ulangi kata sandi") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    visualTransformation = PasswordVisualTransformation()
+                )
+            }
+
+            Spacer(Modifier.height(18.dp))
+
+            Button(
+                onClick = {
+                    message = if (isRegister) {
+                        "Pendaftaran akan diaktifkan setelah server terhubung."
+                    } else {
+                        "Login akan diaktifkan setelah server terhubung."
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AuthBlue
+                )
+            ) {
+                Text(if (isRegister) "Daftar" else "Masuk")
+            }
+
+            if (message.isNotEmpty()) {
+                Text(
+                    message,
+                    color = Color.Gray,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(top = 10.dp)
+                )
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (isRegister) "Sudah punya akun?" else "Belum punya akun?"
+                )
+                TextButton(onClick = {
+                    isRegister = !isRegister
+                    message = ""
+                }) {
+                    Text(if (isRegister) "Masuk" else "Daftar")
+                }
+            }
+
+            TextButton(onClick = onContinueAsGuest) {
+                Text("Lihat aplikasi tanpa akun")
+            }
+        }
+    }
+}
