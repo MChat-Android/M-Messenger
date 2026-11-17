@@ -143,11 +143,9 @@ fun ContactsScreen(onBack: () -> Unit = {}) {
                         .whereEqualTo("phoneNumber", phone)
                         .get()
                 }
-
-                val results: List<QuerySnapshot> = withContext(Dispatchers.IO) {
-    Tasks.await(Tasks.whenAllSuccess<QuerySnapshot>(queryTasks))
+                val results = queryTasks.map { task ->
+    task.getResult()
 }
-
                 results.forEach { snapshot ->
                     snapshot.documents.forEach { document ->
                         val phone = document.getString("phoneNumber")
