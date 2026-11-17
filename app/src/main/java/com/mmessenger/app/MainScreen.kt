@@ -1,5 +1,5 @@
 
-package com.messenger.app
+package com.mmessenger.app
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
