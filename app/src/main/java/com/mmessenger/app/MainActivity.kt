@@ -17,16 +17,36 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf(false)
             }
 
+            var showContacts by remember {
+                mutableStateOf(false)
+            }
+
             MaterialTheme {
                 Surface {
-                    if (showHome) {
-                        MainScreen()
-                    } else {
-                        AuthScreen(
-                            onContinueAsGuest = {
-                                showHome = true
-                            }
-                        )
+                    when {
+                        !showHome -> {
+                            AuthScreen(
+                                onContinueAsGuest = {
+                                    showHome = true
+                                }
+                            )
+                        }
+
+                        showContacts -> {
+                            ContactsScreen(
+                                onBack = {
+                                    showContacts = false
+                                }
+                            )
+                        }
+
+                        else -> {
+                            MainScreen(
+                                onContactsClick = {
+                                    showContacts = true
+                                }
+                            )
+                        }
                     }
                 }
             }
