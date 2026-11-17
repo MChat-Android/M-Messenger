@@ -167,7 +167,12 @@ fun AuthScreen(onContinueAsGuest: () -> Unit) {
                             message = "Nomor telepon wajib diisi."
                             return@Button
                         }
+val normalizedPhone = normalizePhoneNumber(phone)
 
+if (normalizedPhone == null) {
+    message = "Gunakan nomor Indonesia yang benar."
+    return@Button
+}
                         if (password != confirmPassword) {
                             message = "Konfirmasi kata sandi tidak cocok."
                             return@Button
@@ -191,7 +196,7 @@ fun AuthScreen(onContinueAsGuest: () -> Unit) {
                                 val profile = hashMapOf(
                                     "uid" to user.uid,
                                     "email" to email.trim(),
-                                    "phoneNumber" to phone.trim(),
+                                    "phoneNumber" to normalizedPhone,
                                     "createdAt" to FieldValue.serverTimestamp()
                                 )
 
