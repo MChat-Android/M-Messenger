@@ -15,6 +15,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
 
 private val AuthBlue = Color(0xFF246BFD)
 
@@ -26,6 +29,10 @@ fun AuthScreen(onContinueAsGuest: () -> Unit) {
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+
+    val auth = remember { FirebaseAuth.getInstance() }
+    val db = remember { FirebaseFirestore.getInstance() }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -60,7 +67,8 @@ fun AuthScreen(onContinueAsGuest: () -> Unit) {
             )
 
             Text(
-                if (isRegister) "Buat akun baru" else "Selamat datang kembali",
+                if (isRegister) "Buat akun baru"
+                else "Selamat datang kembali",
                 color = Color.Gray
             )
 
@@ -71,6 +79,7 @@ fun AuthScreen(onContinueAsGuest: () -> Unit) {
                 onValueChange = { email = it },
                 label = { Text("Email") },
                 singleLine = true,
+                enabled = !isLoading,
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Email
@@ -79,11 +88,13 @@ fun AuthScreen(onContinueAsGuest: () -> Unit) {
 
             if (isRegister) {
                 Spacer(Modifier.height(12.dp))
+
                 OutlinedTextField(
                     value = phone,
                     onValueChange = { phone = it },
                     label = { Text("Nomor telepon") },
                     singleLine = true,
+                    enabled = !isLoading,
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Phone
@@ -98,17 +109,20 @@ fun AuthScreen(onContinueAsGuest: () -> Unit) {
                 onValueChange = { password = it },
                 label = { Text("Kata sandi") },
                 singleLine = true,
+                enabled = !isLoading,
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = PasswordVisualTransformation()
             )
 
             if (isRegister) {
                 Spacer(Modifier.height(12.dp))
+
                 OutlinedTextField(
                     value = confirmPassword,
                     onValueChange = { confirmPassword = it },
                     label = { Text("Ulangi kata sandi") },
                     singleLine = true,
+                    enabled = !isLoading,
                     modifier = Modifier.fillMaxWidth(),
                     visualTransformation = PasswordVisualTransformation()
                 )
@@ -118,12 +132,87 @@ fun AuthScreen(onContinueAsGuest: () -> Unit) {
 
             Button(
                 onClick = {
-                    message = if (isRegister) {
-                        "Pendaftaran akan diaktifkan setelah server terhubung."
+                    message = ""
+
+                    if (email.isBlank() || !email.contains("@")) {
+                        message = "Masukkan alamat email yang benar."
+                        return@Button
+                    }
+
+                    if (password.length < 6) {
+                        message = "Kata sandi minimal 6 karakter."
+                        return@Button
+                    }
+
+                    if (isRegister) {
+                        if (phone.isBlank()) {
+                            message = "Nomor telepon wajib diisi."
+                            return@Button
+                        }
+
+                        if (password != confirmPassword) {
+                            message = "Konfirmasi kata sandi tidak cocok."
+                            return@Button
+                        }
+
+                        isLoading = true
+
+                        auth.createUserWithEmailAndPassword(
+                            email.trim(),
+                            password
+                        ).addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                val user = auth.currentUser
+
+                                if (user == null) {
+                                    isLoading = false
+                                    message = "Akun dibuat, tetapi sesi login tidak ditemukan."
+                                    return@addOnCompleteListener
+                                }
+
+                                val profile = hashMapOf(
+                                    "uid" to user.uid,
+                                    "email" to email.trim(),
+                                    "phoneNumber" to phone.trim(),
+                                    "createdAt" to FieldValue.serverTimestamp()
+                                )
+
+                                db.collection("users")
+                                    .document(user.uid)
+                                    .set(profile)
+                                    .addOnSuccessListener {
+                                        isLoading = false
+                                        onContinueAsGuest()
+                                    }
+                                    .addOnFailureListener { error ->
+                                        isLoading = false
+                                        message = "Akun berhasil dibuat, tetapi profil gagal disimpan: ${error.localizedMessage}"
+                                    }
+                            } else {
+                                isLoading = false
+                                message = task.exception?.localizedMessage
+                                    ?: "Pendaftaran gagal."
+                            }
+                        }
                     } else {
-                        "Login akan diaktifkan setelah server terhubung."
+                        isLoading = true
+
+                        auth.signInWithEmailAndPassword(
+                            email.trim(),
+                            password
+                        ).addOnCompleteListener { task ->
+                            isLoading = false
+
+                            if (task.isSuccessful) {
+                                onContinueAsGuest()
+                            } else {
+                                message = task.exception?.localizedMessage
+                                    ?: "Login gagal."
+                            }
+                        }
                     }
                 },
+                enabled = !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
@@ -131,13 +220,21 @@ fun AuthScreen(onContinueAsGuest: () -> Unit) {
                     containerColor = AuthBlue
                 )
             ) {
-                Text(if (isRegister) "Daftar" else "Masuk")
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(if (isRegister) "Daftar" else "Masuk")
+                }
             }
 
             if (message.isNotEmpty()) {
                 Text(
                     message,
-                    color = Color.Gray,
+                    color = Color.Red,
                     fontSize = 12.sp,
                     modifier = Modifier.padding(top = 10.dp)
                 )
@@ -145,17 +242,25 @@ fun AuthScreen(onContinueAsGuest: () -> Unit) {
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    if (isRegister) "Sudah punya akun?" else "Belum punya akun?"
+                    if (isRegister) "Sudah punya akun?"
+                    else "Belum punya akun?"
                 )
-                TextButton(onClick = {
-                    isRegister = !isRegister
-                    message = ""
-                }) {
+
+                TextButton(
+                    enabled = !isLoading,
+                    onClick = {
+                        isRegister = !isRegister
+                        message = ""
+                    }
+                ) {
                     Text(if (isRegister) "Masuk" else "Daftar")
                 }
             }
 
-            TextButton(onClick = onContinueAsGuest) {
+            TextButton(
+                enabled = !isLoading,
+                onClick = onContinueAsGuest
+            ) {
                 Text("Lihat aplikasi tanpa akun")
             }
         }
