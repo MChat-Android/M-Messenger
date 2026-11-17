@@ -20,7 +20,25 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 
 private val AuthBlue = Color(0xFF246BFD)
+private fun normalizePhoneNumber(input: String): String? {
+    var digits = input.filter { it.isDigit() }
 
+    if (digits.startsWith("0")) {
+        digits = "62" + digits.drop(1)
+    } else if (digits.startsWith("8")) {
+        digits = "62" + digits
+    }
+
+    if (!digits.startsWith("62")) {
+        return null
+    }
+
+    if (digits.length !in 10..15) {
+        return null
+    }
+
+    return "+$digits"
+}
 @Composable
 fun AuthScreen(onContinueAsGuest: () -> Unit) {
     var isRegister by remember { mutableStateOf(false) }
