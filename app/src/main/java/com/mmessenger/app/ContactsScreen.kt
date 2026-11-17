@@ -1,3 +1,5 @@
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 package com.mmessenger.app
 
 import android.Manifest
@@ -142,9 +144,9 @@ fun ContactsScreen(onBack: () -> Unit = {}) {
                         .get()
                 }
 
-                val results = Tasks.whenAllSuccess<QuerySnapshot>(
-                    queryTasks
-                ).await()
+                val results: List<QuerySnapshot> = withContext(Dispatchers.IO) {
+    Tasks.await(Tasks.whenAllSuccess<QuerySnapshot>(queryTasks))
+}
 
                 results.forEach { snapshot ->
                     snapshot.documents.forEach { document ->
