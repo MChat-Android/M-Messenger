@@ -1,5 +1,8 @@
 package com.mmessenger.app
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -9,6 +12,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.messaging.FirebaseMessaging
 
 class MainActivity : ComponentActivity() {
 
@@ -28,6 +33,31 @@ class MainActivity : ComponentActivity() {
 
             var selectedContact by remember {
                 mutableStateOf<MatchedContact?>(null)
+            }
+
+            LaunchedEffect(showHome) {
+                val user = FirebaseAuth.getInstance().currentUser
+
+                if (showHome && user != null) {
+
+                    if (Build.VERSION.SDK_INT >= 33 &&
+                        checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                        != PackageManager.PERMISSION_GRANTED
+                    ) {
+                        requestPermissions(
+                            arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                            1001
+                        )
+                    }
+
+                    FirebaseMessaging.getInstance().token
+                        .addOnSuccessListener { token ->
+                            FirebaseFirestore.getInstance()
+                                .collection("users")
+                                .document(user.uid)
+                                .update("fcmToken", token)
+                        }
+                }
             }
 
             BackHandler(
