@@ -66,10 +66,10 @@ class MainActivity : ComponentActivity() {
                     userDoc.set(profile, SetOptions.merge())
                         .addOnSuccessListener {
                             Toast.makeText(
-                                this@MainActivity,
-                                "Profil pengguna berhasil disimpan",
-                                Toast.LENGTH_LONG
-                            ).show()
+    this@MainActivity,
+    "AKUN AKTIF:\nEmail: ${user.email}\nUID: ${user.uid}",
+    Toast.LENGTH_LONG
+).show()
 
                             FirebaseMessaging.getInstance().token
                                 .addOnSuccessListener { token ->
