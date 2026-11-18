@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.provider.ContactsContract
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -52,29 +53,21 @@ private fun normalizeContactPhone(input: String): String? {
 }
 
 @Composable
-fun ContactsScreen(onBack: () -> Unit = {}) {
-
+fun ContactsScreen(
+    onBack: () -> Unit = {},
+    onContactClick: (MatchedContact) -> Unit = {}
+) {
     val context = LocalContext.current
 
-    val db = remember {
-        FirebaseFirestore.getInstance()
-    }
-
-    val auth = remember {
-        FirebaseAuth.getInstance()
-    }
+    val db = remember { FirebaseFirestore.getInstance() }
+    val auth = remember { FirebaseAuth.getInstance() }
 
     var contacts by remember {
         mutableStateOf(listOf<MatchedContact>())
     }
 
-    var loading by remember {
-        mutableStateOf(false)
-    }
-
-    var errorMessage by remember {
-        mutableStateOf("")
-    }
+    var loading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
 
     var hasPermission by remember {
         mutableStateOf(
@@ -93,7 +86,6 @@ fun ContactsScreen(onBack: () -> Unit = {}) {
         }
 
     LaunchedEffect(hasPermission) {
-
         if (!hasPermission) return@LaunchedEffect
 
         val currentUser = auth.currentUser
@@ -107,89 +99,66 @@ fun ContactsScreen(onBack: () -> Unit = {}) {
         errorMessage = ""
 
         try {
-
             val phoneContacts = mutableListOf<PhoneContact>()
 
-            with(
-                context.contentResolver.query(
-                    ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-                    arrayOf(
-                        ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
-                        ContactsContract.CommonDataKinds.Phone.NUMBER
-                    ),
-                    null,
-                    null,
-                    ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " ASC"
+            context.contentResolver.query(
+                ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                arrayOf(
+                    ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                    ContactsContract.CommonDataKinds.Phone.NUMBER
+                ),
+                null,
+                null,
+                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " ASC"
+            )?.use { cursor ->
+
+                val nameIndex = cursor.getColumnIndex(
+                    ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME
                 )
-            ) {
-                this?.use { cursor ->
 
-                    val nameIndex = cursor.getColumnIndex(
-                        ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME
-                    )
+                val numberIndex = cursor.getColumnIndex(
+                    ContactsContract.CommonDataKinds.Phone.NUMBER
+                )
 
-                    val numberIndex = cursor.getColumnIndex(
-                        ContactsContract.CommonDataKinds.Phone.NUMBER
-                    )
+                while (cursor.moveToNext()) {
+                    val name = cursor.getString(nameIndex) ?: ""
+                    val number = cursor.getString(numberIndex) ?: ""
 
-                    while (cursor.moveToNext()) {
-
-                        val name = cursor.getString(nameIndex) ?: ""
-                        val number = cursor.getString(numberIndex) ?: ""
-
-                        if (name.isNotBlank() && number.isNotBlank()) {
-                            phoneContacts.add(
-                                PhoneContact(name, number)
-                            )
-                        }
+                    if (name.isNotBlank() && number.isNotBlank()) {
+                        phoneContacts.add(PhoneContact(name, number))
                     }
                 }
             }
 
             val normalizedContacts = phoneContacts.mapNotNull { contact ->
-
                 val normalized = normalizeContactPhone(contact.number)
 
                 if (normalized != null) {
-                    Triple(
-                        contact.name,
-                        contact.number,
-                        normalized
-                    )
+                    Triple(contact.name, contact.number, normalized)
                 } else {
                     null
                 }
-
             }.distinctBy { it.third }
 
-            val phoneNumbers = normalizedContacts.map {
-                it.third
-            }
-
+            val phoneNumbers = normalizedContacts.map { it.third }
             val matchedUsers = mutableMapOf<String, String>()
 
             phoneNumbers.chunked(10).forEach { batch ->
-
                 val queryTasks = batch.map { phone ->
-
                     db.collection("users")
                         .whereEqualTo("phoneNumber", phone)
                         .get()
                 }
 
-                val results: List<QuerySnapshot> = withContext(Dispatchers.IO) {
-
-                    Tasks.await(
-                        Tasks.whenAllSuccess<QuerySnapshot>(
-                            queryTasks
+                val results: List<QuerySnapshot> =
+                    withContext(Dispatchers.IO) {
+                        Tasks.await(
+                            Tasks.whenAllSuccess<QuerySnapshot>(queryTasks)
                         )
-                    )
-                }
+                    }
 
                 results.forEach { snapshot ->
-
                     snapshot.documents.forEach { document ->
-
                         val phone = document.getString("phoneNumber")
                         val uid = document.id
 
@@ -201,28 +170,22 @@ fun ContactsScreen(onBack: () -> Unit = {}) {
             }
 
             contacts = normalizedContacts.mapNotNull { contact ->
-
                 val uid = matchedUsers[contact.third]
 
                 if (uid != null) {
-
                     MatchedContact(
                         name = contact.first,
                         number = contact.second,
                         uid = uid
                     )
-
                 } else {
                     null
                 }
             }
 
         } catch (e: Exception) {
-
             errorMessage = "Gagal mencari kontak: ${e.localizedMessage}"
-
         } finally {
-
             loading = false
         }
     }
@@ -232,7 +195,6 @@ fun ContactsScreen(onBack: () -> Unit = {}) {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-
         TextButton(onClick = onBack) {
             Text("← Kembali")
         }
@@ -245,9 +207,7 @@ fun ContactsScreen(onBack: () -> Unit = {}) {
         Spacer(Modifier.height(16.dp))
 
         when {
-
             !hasPermission -> {
-
                 Text("Izinkan akses kontak untuk menemukan teman.")
 
                 Button(
@@ -262,40 +222,33 @@ fun ContactsScreen(onBack: () -> Unit = {}) {
             }
 
             loading -> {
-
                 CircularProgressIndicator()
-
                 Text("Mencari pengguna M Messenger...")
             }
 
             errorMessage.isNotEmpty() -> {
-
                 Text(errorMessage)
             }
 
             contacts.isEmpty() -> {
-
                 Text("Belum ada kontak yang menggunakan M Messenger.")
             }
 
             else -> {
-
-                Text(
-                    "${contacts.size} teman menggunakan M Messenger"
-                )
+                Text("${contacts.size} teman menggunakan M Messenger")
 
                 Spacer(Modifier.height(12.dp))
 
                 LazyColumn {
-
                     items(contacts) { contact ->
-
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .clickable {
+                                    onContactClick(contact)
+                                }
                                 .padding(vertical = 12.dp)
                         ) {
-
                             Text(
                                 contact.name,
                                 style = MaterialTheme.typography.titleMedium
@@ -304,7 +257,7 @@ fun ContactsScreen(onBack: () -> Unit = {}) {
                             Text(contact.number)
 
                             Text(
-                                "Pengguna M Messenger",
+                                "Pengguna M Messenger • Ketuk untuk chat",
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
