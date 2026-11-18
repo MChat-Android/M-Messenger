@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -52,19 +53,57 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    FirebaseMessaging.getInstance().token
-                        .addOnSuccessListener { token ->
-                            val profile = hashMapOf(
-                                "uid" to user.uid,
-                                "email" to (user.email ?: ""),
-                                "fcmToken" to token,
-                                "timestamp" to FieldValue.serverTimestamp()
-                            )
+                    val userDoc = FirebaseFirestore.getInstance()
+                        .collection("users")
+                        .document(user.uid)
 
-                            FirebaseFirestore.getInstance()
-                                .collection("users")
-                                .document(user.uid)
-                                .set(profile, SetOptions.merge())
+                    val profile = hashMapOf(
+                        "uid" to user.uid,
+                        "email" to (user.email ?: ""),
+                        "timestamp" to FieldValue.serverTimestamp()
+                    )
+
+                    userDoc.set(profile, SetOptions.merge())
+                        .addOnSuccessListener {
+                            Toast.makeText(
+                                this@MainActivity,
+                                "Profil pengguna berhasil disimpan",
+                                Toast.LENGTH_LONG
+                            ).show()
+
+                            FirebaseMessaging.getInstance().token
+                                .addOnSuccessListener { token ->
+                                    userDoc.set(
+                                        mapOf("fcmToken" to token),
+                                        SetOptions.merge()
+                                    ).addOnSuccessListener {
+                                        Toast.makeText(
+                                            this@MainActivity,
+                                            "Token notifikasi berhasil disimpan",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }.addOnFailureListener { error ->
+                                        Toast.makeText(
+                                            this@MainActivity,
+                                            "Gagal menyimpan token: ${error.localizedMessage}",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+                                }
+                                .addOnFailureListener { error ->
+                                    Toast.makeText(
+                                        this@MainActivity,
+                                        "Gagal mengambil token: ${error.localizedMessage}",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                        }
+                        .addOnFailureListener { error ->
+                            Toast.makeText(
+                                this@MainActivity,
+                                "Gagal menyimpan profil: ${error.localizedMessage}",
+                                Toast.LENGTH_LONG
+                            ).show()
                         }
                 }
             }
