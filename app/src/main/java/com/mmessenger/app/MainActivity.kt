@@ -1,4 +1,3 @@
-
 package com.mmessenger.app
 
 import android.os.Bundle
@@ -9,6 +8,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -19,6 +19,10 @@ class MainActivity : ComponentActivity() {
 
             var showContacts by remember {
                 mutableStateOf(false)
+            }
+
+            var selectedContact by remember {
+                mutableStateOf<MatchedContact?>(null)
             }
 
             MaterialTheme {
@@ -32,10 +36,22 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
+                        selectedContact != null -> {
+                            ChatScreen(
+                                contact = selectedContact!!,
+                                onBack = {
+                                    selectedContact = null
+                                }
+                            )
+                        }
+
                         showContacts -> {
                             ContactsScreen(
                                 onBack = {
                                     showContacts = false
+                                },
+                                onContactClick = { contact ->
+                                    selectedContact = contact
                                 }
                             )
                         }
