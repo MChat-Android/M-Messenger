@@ -19,7 +19,11 @@ import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import java.text.SimpleDateFormat
 import java.util.Locale
-
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
+private const val NOTIFICATION_WEB_APP_URL =
+    "https://script.google.com/macros/s/AKfycbxwzBb0UYvgmYdBcBWssHM1xlCkpJ2EfnNldWHJwmZXgzVHY3NIziTzossAuWduhnzrzw/exec"
 private data class ChatMessage(
     val id: String,
     val senderId: String,
