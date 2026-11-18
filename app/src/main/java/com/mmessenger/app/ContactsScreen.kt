@@ -1,3 +1,4 @@
+import com.google.android.gms.tasks.Tasks
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 package com.mmessenger.app
@@ -143,8 +144,11 @@ fun ContactsScreen(onBack: () -> Unit = {}) {
                         .whereEqualTo("phoneNumber", phone)
                         .get()
                 }
-                val results = queryTasks.map { task ->
-    task.getResult()
+                val results = Tasks.await(
+    Tasks.whenAllSuccess<com.google.firebase.firestore.QuerySnapshot>(
+        queryTasks
+    )
+)
 }
                 results.forEach { snapshot ->
                     snapshot.documents.forEach { document ->
