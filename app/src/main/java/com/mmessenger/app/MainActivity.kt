@@ -12,7 +12,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.messaging.FirebaseMessaging
 
 class MainActivity : ComponentActivity() {
@@ -52,10 +54,17 @@ class MainActivity : ComponentActivity() {
 
                     FirebaseMessaging.getInstance().token
                         .addOnSuccessListener { token ->
+                            val profile = hashMapOf(
+                                "uid" to user.uid,
+                                "email" to (user.email ?: ""),
+                                "fcmToken" to token,
+                                "timestamp" to FieldValue.serverTimestamp()
+                            )
+
                             FirebaseFirestore.getInstance()
                                 .collection("users")
                                 .document(user.uid)
-                                .update("fcmToken", token)
+                                .set(profile, SetOptions.merge())
                         }
                 }
             }
