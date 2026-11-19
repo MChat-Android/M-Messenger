@@ -240,107 +240,120 @@ fun MainScreen(
             }
         }
     ) { padding ->
-        Column(
+
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(Color.White)
+                .background(Color.White),
+            contentPadding = PaddingValues(bottom = 16.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFFEAF1FF))
-                    .padding(20.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "M",
-                    fontSize = 34.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MBlue
-                )
 
-                Spacer(Modifier.width(10.dp))
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFEAF1FF))
+                        .padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "M",
+                        fontSize = 34.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MBlue
+                    )
 
-                Column {
-                    Text(
-                        "Messenger",
-                        fontSize = 21.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF17233B)
-                    )
-                    Text(
-                        "Stay Connected",
-                        color = Color.Gray,
-                        fontSize = 12.sp
-                    )
+                    Spacer(Modifier.width(10.dp))
+
+                    Column {
+                        Text(
+                            "Messenger",
+                            fontSize = 21.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF17233B)
+                        )
+                        Text(
+                            "Stay Connected",
+                            color = Color.Gray,
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    Spacer(Modifier.weight(1f))
+
+                    Text("●", color = Color(0xFF16A34A))
+                    Spacer(Modifier.width(5.dp))
+                    Text("Online", color = Color.DarkGray)
                 }
-
-                Spacer(Modifier.weight(1f))
-
-                Text("●", color = Color(0xFF16A34A))
-                Spacer(Modifier.width(5.dp))
-                Text("Online", color = Color.DarkGray)
             }
 
-            Text(
-                "Pesan",
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(20.dp)
-            )
+            item {
+                Text(
+                    "Pesan",
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(20.dp)
+                )
+            }
 
-            OutlinedTextField(
-                value = search,
-                onValueChange = { search = it },
-                placeholder = { Text("Cari percakapan...") },
-                singleLine = true,
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-            )
+            item {
+                OutlinedTextField(
+                    value = search,
+                    onValueChange = { search = it },
+                    placeholder = { Text("Cari percakapan...") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                )
+            }
 
-            Text(
-                "Pesan terbaru",
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                modifier = Modifier.padding(16.dp)
-            )
+            item {
+                Text(
+                    "Pesan terbaru",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
 
             when {
                 loading -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
                     }
                 }
 
                 filtered.isEmpty() -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            if (search.isNotBlank())
-                                "Percakapan tidak ditemukan"
-                            else
-                                "Belum ada percakapan"
-                        )
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                if (search.isNotBlank())
+                                    "Percakapan tidak ditemukan"
+                                else
+                                    "Belum ada percakapan"
+                            )
+                        }
                     }
                 }
 
                 else -> {
-                    LazyColumn(
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        items(filtered, key = { it.id }) { chat ->
+                    items(filtered, key = { it.id }) { chat ->
+                        Column {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
