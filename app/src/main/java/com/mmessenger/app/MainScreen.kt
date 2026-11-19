@@ -1,6 +1,7 @@
 
 package com.mmessenger.app
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -214,29 +216,41 @@ fun MainScreen(
         },
         bottomBar = {
             NavigationBar(containerColor = Color.White) {
-                listOf("Chat", "Kontak", "Profil").forEach { tab ->
-                    NavigationBarItem(
-                        selected = selectedTab == tab,
-                        onClick = {
-                            selectedTab = tab
-                            when (tab) {
-                                "Kontak" -> onContactsClick()
-                                "Profil" -> onProfileClick()
-                            }
-                        },
-                        icon = {
-                            Text(
-                                when (tab) {
-                                    "Chat" -> "●"
-                                    "Kontak" -> "♙"
-                                    else -> "●"
-                                },
-                                fontSize = 20.sp
-                            )
-                        },
-                        label = { Text(tab) }
-                    )
-                }
+
+                NavigationBarItem(
+                    selected = selectedTab == "Chat",
+                    onClick = {
+                        selectedTab = "Chat"
+                    },
+                    icon = {
+                        Text("💬", fontSize = 21.sp)
+                    },
+                    label = { Text("Pesan") }
+                )
+
+                NavigationBarItem(
+                    selected = selectedTab == "Kontak",
+                    onClick = {
+                        selectedTab = "Kontak"
+                        onContactsClick()
+                    },
+                    icon = {
+                        Text("👥", fontSize = 21.sp)
+                    },
+                    label = { Text("Kontak") }
+                )
+
+                NavigationBarItem(
+                    selected = selectedTab == "Profil",
+                    onClick = {
+                        selectedTab = "Profil"
+                        onProfileClick()
+                    },
+                    icon = {
+                        Text("👤", fontSize = 21.sp)
+                    },
+                    label = { Text("Profil") }
+                )
             }
         }
     ) { padding ->
@@ -257,18 +271,19 @@ fun MainScreen(
                         .padding(20.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        "M",
-                        fontSize = 34.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MBlue
+                    Image(
+                        painter = painterResource(
+                            id = R.mipmap.ic_launcher
+                        ),
+                        contentDescription = "Logo M Messenger",
+                        modifier = Modifier.size(48.dp)
                     )
 
-                    Spacer(Modifier.width(10.dp))
+                    Spacer(Modifier.width(12.dp))
 
                     Column {
                         Text(
-                            "Messenger",
+                            "M Messenger",
                             fontSize = 21.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF17233B)
