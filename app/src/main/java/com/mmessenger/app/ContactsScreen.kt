@@ -84,8 +84,21 @@ fun ContactsScreen(
             ActivityResultContracts.RequestPermission()
         ) { granted ->
             hasPermission = granted
+            if (!granted) {
+                errorMessage = "Izin kontak belum diberikan."
+            }
         }
 
+    // Otomatis meminta izin saat menu Kontak dibuka.
+    LaunchedEffect(Unit) {
+        if (!hasPermission) {
+            permissionLauncher.launch(
+                Manifest.permission.READ_CONTACTS
+            )
+        }
+    }
+
+    // Setelah izin diberikan, kontak langsung disinkronkan.
     LaunchedEffect(hasPermission) {
         if (!hasPermission) return@LaunchedEffect
 
@@ -126,7 +139,9 @@ fun ContactsScreen(
                     val number = cursor.getString(numberIndex) ?: ""
 
                     if (name.isNotBlank() && number.isNotBlank()) {
-                        phoneContacts.add(PhoneContact(name, number))
+                        phoneContacts.add(
+                            PhoneContact(name, number)
+                        )
                     }
                 }
             }
@@ -147,6 +162,7 @@ fun ContactsScreen(
                 mutableMapOf<String, Pair<String, String?>>()
 
             phoneNumbers.chunked(10).forEach { batch ->
+
                 val queryTasks = batch.map { phone ->
                     db.collection("users")
                         .whereEqualTo("phoneNumber", phone)
@@ -219,7 +235,12 @@ fun ContactsScreen(
         when {
             !hasPermission -> {
                 item {
-                    Text("Izinkan akses kontak untuk menemukan teman.")
+                    Text(
+                        "M Messenger memerlukan izin kontak " +
+                            "untuk menemukan teman yang menggunakan M."
+                    )
+
+                    Spacer(Modifier.height(12.dp))
 
                     Button(
                         onClick = {
@@ -236,7 +257,8 @@ fun ContactsScreen(
             loading -> {
                 item {
                     CircularProgressIndicator()
-                    Text("Mencari pengguna M Messenger...")
+                    Spacer(Modifier.height(8.dp))
+                    Text("Menyinkronkan kontak...")
                 }
             }
 
@@ -248,13 +270,18 @@ fun ContactsScreen(
 
             contacts.isEmpty() -> {
                 item {
-                    Text("Belum ada kontak yang menggunakan M Messenger.")
+                    Text(
+                        "Belum ada kontak yang menggunakan M Messenger."
+                    )
                 }
             }
 
             else -> {
                 item {
-                    Text("${contacts.size} teman menggunakan M Messenger")
+                    Text(
+                        "${contacts.size} teman menggunakan M Messenger"
+                    )
+
                     Spacer(Modifier.height(12.dp))
                 }
 
