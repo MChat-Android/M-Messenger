@@ -1,6 +1,8 @@
+
 package com.mmessenger.app
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -20,6 +22,14 @@ import com.google.firebase.messaging.FirebaseMessaging
 
 class MainActivity : ComponentActivity() {
 
+    private var notificationUidState: MutableState<String?>? = null
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        notificationUidState?.value = intent.getStringExtra("openChatWith")
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -37,6 +47,11 @@ class MainActivity : ComponentActivity() {
             var selectedContact by remember {
                 mutableStateOf<MatchedContact?>(null)
             }
+
+            val notificationUid = remember {
+                mutableStateOf(intent.getStringExtra("openChatWith"))
+            }
+            notificationUidState = notificationUid
 
             LaunchedEffect(showHome) {
                 val user = FirebaseAuth.getInstance().currentUser
@@ -65,45 +80,52 @@ class MainActivity : ComponentActivity() {
 
                     userDoc.set(profile, SetOptions.merge())
                         .addOnSuccessListener {
-                            Toast.makeText(
-    this@MainActivity,
-    "AKUN AKTIF:\nEmail: ${user.email}\nUID: ${user.uid}",
-    Toast.LENGTH_LONG
-).show()
-
                             FirebaseMessaging.getInstance().token
                                 .addOnSuccessListener { token ->
                                     userDoc.set(
                                         mapOf("fcmToken" to token),
                                         SetOptions.merge()
-                                    ).addOnSuccessListener {
-                                        Toast.makeText(
-                                            this@MainActivity,
-                                            "Token notifikasi berhasil disimpan",
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                    }.addOnFailureListener { error ->
-                                        Toast.makeText(
-                                            this@MainActivity,
-                                            "Gagal menyimpan token: ${error.localizedMessage}",
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                    }
+                                    )
                                 }
-                                .addOnFailureListener { error ->
-                                    Toast.makeText(
-                                        this@MainActivity,
-                                        "Gagal mengambil token: ${error.localizedMessage}",
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                }
+                        }
+                }
+            }
+
+            LaunchedEffect(notificationUid.value, showHome) {
+                val targetUid = notificationUid.value
+                val user = FirebaseAuth.getInstance().currentUser
+
+                if (!targetUid.isNullOrBlank() &&
+                    showHome &&
+                    user != null
+                ) {
+                    FirebaseFirestore.getInstance()
+                        .collection("users")
+                        .document(targetUid)
+                        .get()
+                        .addOnSuccessListener { document ->
+                            val phone = document.getString("phoneNumber") ?: ""
+                            val email = document.getString("email") ?: ""
+
+                            selectedContact = MatchedContact(
+                                name = phone.ifBlank {
+                                    email.ifBlank { "Pengguna M" }
+                                },
+                                number = phone,
+                                uid = targetUid
+                            )
+
+                            showContacts = false
+                            notificationUid.value = null
                         }
                         .addOnFailureListener { error ->
                             Toast.makeText(
                                 this@MainActivity,
-                                "Gagal menyimpan profil: ${error.localizedMessage}",
+                                "Gagal membuka percakapan: ${error.localizedMessage}",
                                 Toast.LENGTH_LONG
                             ).show()
+
+                            notificationUid.value = null
                         }
                 }
             }
