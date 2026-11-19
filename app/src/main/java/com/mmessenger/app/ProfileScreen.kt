@@ -42,9 +42,11 @@ fun ProfileScreen(
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var email by remember { mutableStateOf(user?.email ?: "") }
+
     var editing by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(true) }
-    var savingPhoto by remember { mutableStateOf(false) }
+    var saving by remember { mutableStateOf(false) }
+
     var message by remember { mutableStateOf("") }
     var photoBase64 by remember { mutableStateOf<String?>(null) }
     var photoBitmap by remember { mutableStateOf<Bitmap?>(null) }
@@ -73,6 +75,7 @@ fun ProfileScreen(
                     )
 
                     val output = ByteArrayOutputStream()
+
                     resized.compress(
                         Bitmap.CompressFormat.JPEG,
                         65,
@@ -83,8 +86,9 @@ fun ProfileScreen(
                         output.toByteArray(),
                         Base64.NO_WRAP
                     )
+
                     photoBitmap = resized
-                    message = "Foto siap disimpan"
+                    message = "Foto baru dipilih. Tekan Simpan Perubahan."
                 } else {
                     message = "Foto tidak dapat dibaca"
                 }
@@ -108,9 +112,15 @@ fun ProfileScreen(
 
                     try {
                         photoBase64?.let {
-                            val bytes = Base64.decode(it, Base64.DEFAULT)
+                            val bytes = Base64.decode(
+                                it,
+                                Base64.DEFAULT
+                            )
+
                             photoBitmap = BitmapFactory.decodeByteArray(
-                                bytes, 0, bytes.size
+                                bytes,
+                                0,
+                                bytes.size
                             )
                         }
                     } catch (_: Exception) {
@@ -135,101 +145,107 @@ fun ProfileScreen(
             .verticalScroll(rememberScrollState())
             .padding(20.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+
+        // BAGIAN JUDUL
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             TextButton(onClick = onBack) {
                 Text("← Kembali")
             }
 
             Text(
-                "Profil Saya",
+                text = "Profil Saya",
                 fontSize = 23.sp,
                 fontWeight = FontWeight.Bold
             )
         }
 
-        Spacer(Modifier.height(25.dp))
+        Spacer(Modifier.height(30.dp))
 
+        // FOTO PROFIL DI TENGAH
         Box(
-            modifier = Modifier
-                .size(120.dp)
-                .background(Color(0xFFEAF1FF), CircleShape),
+            modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
-            if (photoBitmap != null) {
-                Image(
-                    bitmap = photoBitmap!!.asImageBitmap(),
-                    contentDescription = "Foto profil",
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Text(
-                    name.firstOrNull()?.uppercase() ?: "M",
-                    fontSize = 42.sp,
-                    color = Color(0xFF246BFD),
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        if (user != null) {
-            OutlinedButton(
-                onClick = {
-                    imagePicker.launch("image/*")
-                },
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+            Box(
+                modifier = Modifier.size(140.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Text("Pilih Foto dari Galeri")
-            }
-
-            if (photoBase64 != null) {
-                Button(
-                    onClick = {
-                        savingPhoto = true
-
-                        db.collection("users")
-                            .document(user.uid)
-                            .update("photoBase64", photoBase64)
-                            .addOnSuccessListener {
-                                savingPhoto = false
-                                message = "Foto profil berhasil disimpan"
-                            }
-                            .addOnFailureListener {
-                                savingPhoto = false
-                                message = "Gagal menyimpan foto"
-                            }
-                    },
-                    enabled = !savingPhoto,
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp)
+                        .size(120.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFEAF1FF)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        if (savingPhoto) "Menyimpan..."
-                        else "Simpan Foto Profil"
-                    )
+                    if (photoBitmap != null) {
+                        Image(
+                            bitmap = photoBitmap!!.asImageBitmap(),
+                            contentDescription = "Foto profil",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Text(
+                            text = name.firstOrNull()
+                                ?.uppercase() ?: "M",
+                            fontSize = 42.sp,
+                            color = Color(0xFF246BFD),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                // IKON PENSIL DI SUDUT KANAN BAWAH
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(38.dp),
+                    shape = CircleShape,
+                    color = Color(0xFF246BFD),
+                    shadowElevation = 4.dp,
+                    onClick = {
+                        editing = true
+                        message = ""
+                        imagePicker.launch("image/*")
+                    }
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "✎",
+                            color = Color.White,
+                            fontSize = 23.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(25.dp))
 
         if (user == null) {
             Text(
-                "Mode Tamu",
+                text = "Mode Tamu",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
+
             Text("Anda belum masuk menggunakan akun M.")
         } else if (loading) {
-            CircularProgressIndicator()
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
         } else {
+
             Text(
-                "Informasi Akun",
+                text = "Informasi Akun",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -264,73 +280,94 @@ fun ProfileScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(Modifier.height(20.dp))
+            // TOMBOL SIMPAN HANYA SAAT MODE EDIT
+            if (editing) {
+                Spacer(Modifier.height(20.dp))
 
-            Button(
-                onClick = {
-                    if (editing) {
+                Button(
+                    onClick = {
                         if (name.isBlank() || phone.isBlank()) {
                             message = "Nama dan nomor telepon wajib diisi"
                         } else {
-                            loading = true
+                            saving = true
+                            message = ""
+
+                            val updates = mutableMapOf<String, Any>(
+                                "name" to name.trim(),
+                                "phoneNumber" to phone.trim()
+                            )
+
+                            photoBase64?.let {
+                                updates["photoBase64"] = it
+                            }
 
                             db.collection("users")
                                 .document(user.uid)
-                                .update(
-                                    mapOf(
-                                        "name" to name.trim(),
-                                        "phoneNumber" to phone.trim()
-                                    )
-                                )
+                                .update(updates)
                                 .addOnSuccessListener {
-                                    loading = false
+                                    saving = false
                                     editing = false
                                     message = "Profil berhasil disimpan"
                                 }
                                 .addOnFailureListener {
-                                    loading = false
+                                    saving = false
                                     message = "Gagal menyimpan profil"
                                 }
                         }
-                    } else {
-                        editing = true
-                        message = ""
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF246BFD)
-                )
-            ) {
-                Text(if (editing) "Simpan Profil" else "Edit Profil")
+                    },
+                    enabled = !saving,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF246BFD)
+                    )
+                ) {
+                    Text(
+                        if (saving) "Menyimpan..."
+                        else "Simpan Perubahan"
+                    )
+                }
             }
         }
 
         if (message.isNotBlank()) {
             Text(
-                message,
+                text = message,
                 color = Color(0xFF246BFD),
-                modifier = Modifier.padding(10.dp)
+                modifier = Modifier.padding(top = 12.dp)
             )
         }
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(35.dp))
 
+        // KELUAR DI POJOK KIRI BAWAH
         if (user != null) {
-            OutlinedButton(
+            TextButton(
                 onClick = {
                     auth.signOut()
                     onLoggedOut()
                 },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = Color.Red
+                contentPadding = PaddingValues(
+                    horizontal = 8.dp,
+                    vertical = 6.dp
                 )
             ) {
-                Text("Keluar dari Akun")
+                Text(
+                    text = "⏻",
+                    color = Color.Red,
+                    fontSize = 27.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(Modifier.width(8.dp))
+
+                Text(
+                    text = "Keluar",
+                    color = Color.Red,
+                    fontSize = 16.sp
+                )
             }
         }
 
-        Spacer(Modifier.height(30.dp))
+        Spacer(Modifier.height(20.dp))
     }
 }
