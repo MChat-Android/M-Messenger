@@ -8,6 +8,9 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 
@@ -16,10 +19,10 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         super.onNewToken(token)
 
-        val user = com.google.firebase.auth.FirebaseAuth
+        val user = FirebaseAuth
             .getInstance().currentUser ?: return
 
-        com.google.firebase.firestore.FirebaseFirestore
+        FirebaseFirestore
             .getInstance()
             .collection("users")
             .document(user.uid)
@@ -37,7 +40,52 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
         val senderId = message.data["senderId"] ?: ""
 
+        if (senderId.isNotBlank()) {
+            markMessagesAsDelivered(senderId)
+        }
+
         showNotification(title, body, senderId)
+    }
+
+    private fun markMessagesAsDelivered(senderId: String) {
+        val receiverUid = FirebaseAuth
+            .getInstance().currentUser?.uid ?: return
+
+        val chatId = listOf(senderId, receiverUid)
+            .sorted()
+            .joinToString("_")
+
+        val db = FirebaseFirestore.getInstance()
+
+        db.collection("chats")
+            .document(chatId)
+            .collection("messages")
+            .whereEqualTo("receiverId", receiverUid)
+            .get()
+            .addOnSuccessListener { snapshot ->
+
+                val pendingMessages = snapshot.documents.filter {
+                    it.getString("senderId") == senderId &&
+                    it.getString("status") == "sent"
+                }
+
+                if (pendingMessages.isNotEmpty()) {
+                    val batch = db.batch()
+
+                    pendingMessages.forEach { document ->
+                        batch.update(
+                            document.reference,
+                            mapOf(
+                                "status" to "delivered",
+                                "deliveredAt" to
+                                    FieldValue.serverTimestamp()
+                            )
+                        )
+                    }
+
+                    batch.commit()
+                }
+            }
     }
 
     private fun showNotification(
