@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -130,15 +131,7 @@ fun ChatScreen(
 ) {
     val auth = remember { FirebaseAuth.getInstance() }
     val db = remember { FirebaseFirestore.getInstance() }
-    import androidx.compose.foundation.lazy.rememberLazyListState
     val currentUid = auth.currentUser?.uid
-    val listState = rememberLazyListState()
-
-LaunchedEffect(messages.size) {
-    if (messages.isNotEmpty()) {
-        listState.scrollToItem(messages.lastIndex)
-    }
-}
 
     val chatId = remember(currentUid, contact.uid) {
         if (currentUid == null) "" else
@@ -147,6 +140,14 @@ LaunchedEffect(messages.size) {
 
     var messages by remember {
         mutableStateOf(listOf<ChatMessage>())
+    }
+
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            listState.scrollToItem(messages.lastIndex)
+        }
     }
 
     var messageText by remember {
@@ -249,10 +250,10 @@ LaunchedEffect(messages.size) {
             }
         } else {
             LazyColumn(
-               state = listState,
-               modifier = Modifier
-                 .weight(1f)
-                 .fillMaxWidth(),
+                state = listState,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
                 contentPadding = PaddingValues(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
