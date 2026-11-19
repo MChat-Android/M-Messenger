@@ -1,6 +1,7 @@
 
 package com.mmessenger.app
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -20,6 +22,7 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 
 private val AuthBlue = Color(0xFF246BFD)
+
 private fun normalizePhoneNumber(input: String): String? {
     var digits = input.filter { it.isDigit() }
 
@@ -39,6 +42,7 @@ private fun normalizePhoneNumber(input: String): String? {
 
     return "+$digits"
 }
+
 @Composable
 fun AuthScreen(onContinueAsGuest: () -> Unit) {
     var isRegister by remember { mutableStateOf(false) }
@@ -63,18 +67,11 @@ fun AuthScreen(onContinueAsGuest: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .background(AuthBlue, RoundedCornerShape(20.dp))
-                    .padding(horizontal = 25.dp, vertical = 12.dp)
-            ) {
-                Text(
-                    "M",
-                    color = Color.White,
-                    fontSize = 38.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            Image(
+                painter = painterResource(id = R.mipmap.ic_launcher),
+                contentDescription = "Logo M Messenger",
+                modifier = Modifier.size(110.dp)
+            )
 
             Spacer(Modifier.height(18.dp))
 
@@ -167,12 +164,14 @@ fun AuthScreen(onContinueAsGuest: () -> Unit) {
                             message = "Nomor telepon wajib diisi."
                             return@Button
                         }
-val normalizedPhone = normalizePhoneNumber(phone)
 
-if (normalizedPhone == null) {
-    message = "Gunakan nomor Indonesia yang benar."
-    return@Button
-}
+                        val normalizedPhone = normalizePhoneNumber(phone)
+
+                        if (normalizedPhone == null) {
+                            message = "Gunakan nomor Indonesia yang benar."
+                            return@Button
+                        }
+
                         if (password != confirmPassword) {
                             message = "Konfirmasi kata sandi tidak cocok."
                             return@Button
