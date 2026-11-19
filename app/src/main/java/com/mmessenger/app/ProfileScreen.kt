@@ -10,7 +10,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -130,6 +132,7 @@ fun ProfileScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF7F9FE))
+            .verticalScroll(rememberScrollState())
             .padding(20.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -311,7 +314,7 @@ fun ProfileScreen(
             )
         }
 
-        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.height(20.dp))
 
         if (user != null) {
             OutlinedButton(
@@ -327,5 +330,7 @@ fun ProfileScreen(
                 Text("Keluar dari Akun")
             }
         }
+
+        Spacer(Modifier.height(30.dp))
     }
 }
