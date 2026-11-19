@@ -12,8 +12,8 @@ permissions:
 
 jobs:
   build:
-    name: Build APK
-    runs-on: ubuntu-latest
+    - name: Build APK
+  run: ./gradlew assembleDebug --stacktrace
 
     steps:
       - name: Checkout
