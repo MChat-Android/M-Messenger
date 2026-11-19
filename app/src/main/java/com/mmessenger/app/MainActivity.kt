@@ -173,8 +173,13 @@ class MainActivity : ComponentActivity() {
 
                         else -> {
                             MainScreen(
-                                onContactsClick = {
-                                    showContacts = true
+    onChatClick = { contact ->
+        selectedContact = contact
+    },
+    onContactsClick = {
+        showContacts = true
+    }
+)
                                 }
                             )
                         }
