@@ -10,10 +10,14 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -109,11 +113,14 @@ class MainActivity : ComponentActivity() {
                         .get()
                         .addOnSuccessListener { document ->
                             val phone = document.getString("phoneNumber") ?: ""
+                            val username = document.getString("name") ?: ""
                             val email = document.getString("email") ?: ""
 
                             selectedContact = MatchedContact(
-                                name = phone.ifBlank {
-                                    email.ifBlank { "Pengguna M" }
+                                name = username.ifBlank {
+                                    phone.ifBlank {
+                                        email.ifBlank { "Pengguna M" }
+                                    }
                                 },
                                 number = phone,
                                 uid = targetUid
@@ -155,7 +162,59 @@ class MainActivity : ComponentActivity() {
             }
 
             MaterialTheme {
-                Surface {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(
+                            showHome,
+                            selectedContact,
+                            showContacts,
+                            showProfile
+                        ) {
+                            var totalDrag = 0f
+
+                            detectHorizontalDragGestures(
+                                onHorizontalDrag = { change, dragAmount ->
+                                    totalDrag += dragAmount
+                                    change.consume()
+                                },
+                                onDragEnd = {
+                                    if (showHome && selectedContact == null) {
+                                        if (totalDrag < -80f) {
+                                            when {
+                                                !showContacts && !showProfile -> {
+                                                    showContacts = true
+                                                    showProfile = false
+                                                }
+
+                                                showContacts -> {
+                                                    showContacts = false
+                                                    showProfile = true
+                                                }
+                                            }
+                                        } else if (totalDrag > 80f) {
+                                            when {
+                                                showProfile -> {
+                                                    showProfile = false
+                                                    showContacts = true
+                                                }
+
+                                                showContacts -> {
+                                                    showContacts = false
+                                                    showProfile = false
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    totalDrag = 0f
+                                },
+                                onDragCancel = {
+                                    totalDrag = 0f
+                                }
+                            )
+                        }
+                ) {
                     when {
                         !showHome -> {
                             AuthScreen(
