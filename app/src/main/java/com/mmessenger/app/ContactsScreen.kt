@@ -1,3 +1,4 @@
+
 package com.mmessenger.app
 
 import android.Manifest
@@ -30,7 +31,8 @@ data class PhoneContact(
 data class MatchedContact(
     val name: String,
     val number: String,
-    val uid: String
+    val uid: String,
+    val photoBase64: String? = null
 )
 
 private fun normalizeContactPhone(input: String): String? {
@@ -58,7 +60,6 @@ fun ContactsScreen(
     onContactClick: (MatchedContact) -> Unit = {}
 ) {
     val context = LocalContext.current
-
     val db = remember { FirebaseFirestore.getInstance() }
     val auth = remember { FirebaseAuth.getInstance() }
 
@@ -141,7 +142,9 @@ fun ContactsScreen(
             }.distinctBy { it.third }
 
             val phoneNumbers = normalizedContacts.map { it.third }
-            val matchedUsers = mutableMapOf<String, String>()
+
+            val matchedUsers =
+                mutableMapOf<String, Pair<String, String?>>()
 
             phoneNumbers.chunked(10).forEach { batch ->
                 val queryTasks = batch.map { phone ->
@@ -161,22 +164,24 @@ fun ContactsScreen(
                     snapshot.documents.forEach { document ->
                         val phone = document.getString("phoneNumber")
                         val uid = document.id
+                        val photo = document.getString("photoBase64")
 
                         if (phone != null && uid != currentUser.uid) {
-                            matchedUsers[phone] = uid
+                            matchedUsers[phone] = uid to photo
                         }
                     }
                 }
             }
 
             contacts = normalizedContacts.mapNotNull { contact ->
-                val uid = matchedUsers[contact.third]
+                val matchedUser = matchedUsers[contact.third]
 
-                if (uid != null) {
+                if (matchedUser != null) {
                     MatchedContact(
                         name = contact.first,
                         number = contact.second,
-                        uid = uid
+                        uid = matchedUser.first,
+                        photoBase64 = matchedUser.second
                     )
                 } else {
                     null
@@ -184,7 +189,8 @@ fun ContactsScreen(
             }
 
         } catch (e: Exception) {
-            errorMessage = "Gagal mencari kontak: ${e.localizedMessage}"
+            errorMessage =
+                "Gagal mencari kontak: ${e.localizedMessage}"
         } finally {
             loading = false
         }
@@ -241,25 +247,37 @@ fun ContactsScreen(
 
                 LazyColumn {
                     items(contacts) { contact ->
-                        Column(
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
                                     onContactClick(contact)
                                 }
-                                .padding(vertical = 12.dp)
+                                .padding(vertical = 12.dp),
+                            verticalAlignment =
+                                androidx.compose.ui.Alignment.CenterVertically
                         ) {
-                            Text(
-                                contact.name,
-                                style = MaterialTheme.typography.titleMedium
+                            ProfileAvatar(
+                                photoBase64 = contact.photoBase64,
+                                name = contact.name,
+                                size = 52.dp
                             )
 
-                            Text(contact.number)
+                            Spacer(Modifier.width(12.dp))
 
-                            Text(
-                                "Pengguna M Messenger • Ketuk untuk chat",
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                            Column {
+                                Text(
+                                    contact.name,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+
+                                Text(contact.number)
+
+                                Text(
+                                    "Pengguna M Messenger • Ketuk untuk chat",
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
 
                         HorizontalDivider()
