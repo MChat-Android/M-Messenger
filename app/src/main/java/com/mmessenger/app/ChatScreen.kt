@@ -34,7 +34,8 @@ private data class ChatMessage(
     val id: String,
     val senderId: String,
     val text: String,
-    val createdAt: Timestamp?
+    val createdAt: Timestamp?,
+    val status: String
 )
 
 private fun conversationId(firstUid: String, secondUid: String): String =
@@ -178,6 +179,7 @@ fun ChatScreen(
                         errorMessage =
                             "Gagal memuat pesan: ${error.localizedMessage}"
                     } else if (snapshot != null) {
+
                         messages = snapshot.documents.map { document ->
                             ChatMessage(
                                 id = document.id,
@@ -186,8 +188,34 @@ fun ChatScreen(
                                 text =
                                     document.getString("text") ?: "",
                                 createdAt =
-                                    document.getTimestamp("createdAt")
+                                    document.getTimestamp("createdAt"),
+                                status =
+                                    document.getString("status") ?: "sent"
                             )
+                        }
+
+                        // Tandai pesan masuk sebagai sudah dibaca
+                        // ketika percakapan sedang dibuka.
+                        val unreadMessages = snapshot.documents.filter {
+                            it.getString("senderId") != currentUid &&
+                            it.getString("status") != "read"
+                        }
+
+                        if (unreadMessages.isNotEmpty()) {
+                            val batch = db.batch()
+
+                            unreadMessages.forEach { document ->
+                                batch.update(
+                                    document.reference,
+                                    mapOf(
+                                        "status" to "read",
+                                        "readAt" to
+                                            FieldValue.serverTimestamp()
+                                    )
+                                )
+                            }
+
+                            batch.commit()
                         }
                     }
                 }
@@ -285,18 +313,42 @@ fun ChatScreen(
                                 color = Color(0xFF17233B)
                             )
 
-                            message.createdAt?.let { timestamp ->
-                                Text(
-                                    SimpleDateFormat(
-                                        "HH:mm",
-                                        Locale.getDefault()
-                                    ).format(timestamp.toDate()),
-                                    style =
-                                        MaterialTheme.typography.labelSmall,
-                                    color = Color.Gray,
-                                    modifier =
-                                        Modifier.align(Alignment.End)
-                                )
+                            Row(
+                                modifier = Modifier.align(Alignment.End),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                message.createdAt?.let { timestamp ->
+                                    Text(
+                                        SimpleDateFormat(
+                                            "HH:mm",
+                                            Locale.getDefault()
+                                        ).format(timestamp.toDate()),
+                                        style =
+                                            MaterialTheme.typography.labelSmall,
+                                        color = Color.Gray
+                                    )
+                                }
+
+                                if (mine) {
+                                    val statusText = when (message.status) {
+                                        "read" -> "✓✓"
+                                        "delivered" -> "✓✓"
+                                        else -> "✓"
+                                    }
+
+                                    val statusColor = when (message.status) {
+                                        "read" -> Color(0xFF1688E8)
+                                        else -> Color.Gray
+                                    }
+
+                                    Text(
+                                        text = statusText,
+                                        color = statusColor,
+                                        style =
+                                            MaterialTheme.typography.labelSmall
+                                    )
+                                }
                             }
                         }
                     }
@@ -358,6 +410,7 @@ fun ChatScreen(
                                     "senderId" to uid,
                                     "receiverId" to contact.uid,
                                     "text" to textToSend,
+                                    "status" to "sent",
                                     "createdAt" to
                                         FieldValue.serverTimestamp()
                                 )
