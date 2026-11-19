@@ -196,57 +196,70 @@ fun ContactsScreen(
         }
     }
 
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        TextButton(onClick = onBack) {
-            Text("← Kembali")
+        item {
+            TextButton(onClick = onBack) {
+                Text("← Kembali")
+            }
         }
 
-        Text(
-            "Temukan Teman M",
-            style = MaterialTheme.typography.headlineMedium
-        )
+        item {
+            Text(
+                "Temukan Teman M",
+                style = MaterialTheme.typography.headlineMedium
+            )
 
-        Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
+        }
 
         when {
             !hasPermission -> {
-                Text("Izinkan akses kontak untuk menemukan teman.")
+                item {
+                    Text("Izinkan akses kontak untuk menemukan teman.")
 
-                Button(
-                    onClick = {
-                        permissionLauncher.launch(
-                            Manifest.permission.READ_CONTACTS
-                        )
+                    Button(
+                        onClick = {
+                            permissionLauncher.launch(
+                                Manifest.permission.READ_CONTACTS
+                            )
+                        }
+                    ) {
+                        Text("Izinkan akses kontak")
                     }
-                ) {
-                    Text("Izinkan akses kontak")
                 }
             }
 
             loading -> {
-                CircularProgressIndicator()
-                Text("Mencari pengguna M Messenger...")
+                item {
+                    CircularProgressIndicator()
+                    Text("Mencari pengguna M Messenger...")
+                }
             }
 
             errorMessage.isNotEmpty() -> {
-                Text(errorMessage)
+                item {
+                    Text(errorMessage)
+                }
             }
 
             contacts.isEmpty() -> {
-                Text("Belum ada kontak yang menggunakan M Messenger.")
+                item {
+                    Text("Belum ada kontak yang menggunakan M Messenger.")
+                }
             }
 
             else -> {
-                Text("${contacts.size} teman menggunakan M Messenger")
+                item {
+                    Text("${contacts.size} teman menggunakan M Messenger")
+                    Spacer(Modifier.height(12.dp))
+                }
 
-                Spacer(Modifier.height(12.dp))
-
-                LazyColumn {
-                    items(contacts) { contact ->
+                items(contacts) { contact ->
+                    Column {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
