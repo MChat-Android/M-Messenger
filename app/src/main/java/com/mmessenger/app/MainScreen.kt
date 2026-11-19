@@ -20,7 +20,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
-import com.google.firebase.Timestamp
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -99,15 +98,22 @@ fun MainScreen(
                                         val phone =
                                             userDoc.getString("phoneNumber") ?: ""
 
+                                        val username =
+                                            userDoc.getString("name") ?: ""
+
                                         val email =
                                             userDoc.getString("email") ?: ""
 
-                                        val contact = MatchedContact(
-                                            name = phone.ifBlank {
+                                        val displayName = username.ifBlank {
+                                            phone.ifBlank {
                                                 email.ifBlank {
                                                     "Pengguna M"
                                                 }
-                                            },
+                                            }
+                                        }
+
+                                        val contact = MatchedContact(
+                                            name = displayName,
                                             number = phone,
                                             uid = otherUid
                                         )
