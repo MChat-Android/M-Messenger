@@ -130,7 +130,15 @@ fun ChatScreen(
 ) {
     val auth = remember { FirebaseAuth.getInstance() }
     val db = remember { FirebaseFirestore.getInstance() }
+    import androidx.compose.foundation.lazy.rememberLazyListState
     val currentUid = auth.currentUser?.uid
+    val listState = rememberLazyListState()
+
+LaunchedEffect(messages.size) {
+    if (messages.isNotEmpty()) {
+        listState.scrollToItem(messages.lastIndex)
+    }
+}
 
     val chatId = remember(currentUid, contact.uid) {
         if (currentUid == null) "" else
@@ -241,9 +249,10 @@ fun ChatScreen(
             }
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
+               state = listState,
+               modifier = Modifier
+                 .weight(1f)
+                 .fillMaxWidth(),
                 contentPadding = PaddingValues(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
