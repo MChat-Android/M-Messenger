@@ -12,8 +12,8 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
@@ -39,18 +39,12 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             var showHome by rememberSaveable {
-                mutableStateOf(
-                    FirebaseAuth.getInstance().currentUser != null
-                )
+                mutableStateOf(FirebaseAuth.getInstance().currentUser != null)
             }
 
-            var showContacts by rememberSaveable {
-                mutableStateOf(false)
-            }
-
-            var showProfile by rememberSaveable {
-                mutableStateOf(false)
-            }
+            var showContacts by rememberSaveable { mutableStateOf(false) }
+            var showProfile by rememberSaveable { mutableStateOf(false) }
+            var selectedTab by rememberSaveable { mutableStateOf("Chat") }
 
             var selectedContact by remember {
                 mutableStateOf<MatchedContact?>(null)
@@ -65,7 +59,6 @@ class MainActivity : ComponentActivity() {
                 val user = FirebaseAuth.getInstance().currentUser
 
                 if (showHome && user != null) {
-
                     if (Build.VERSION.SDK_INT >= 33 &&
                         checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
                         != PackageManager.PERMISSION_GRANTED
@@ -103,10 +96,7 @@ class MainActivity : ComponentActivity() {
                 val targetUid = notificationUid.value
                 val user = FirebaseAuth.getInstance().currentUser
 
-                if (!targetUid.isNullOrBlank() &&
-                    showHome &&
-                    user != null
-                ) {
+                if (!targetUid.isNullOrBlank() && showHome && user != null) {
                     FirebaseFirestore.getInstance()
                         .collection("users")
                         .document(targetUid)
@@ -118,9 +108,7 @@ class MainActivity : ComponentActivity() {
 
                             selectedContact = MatchedContact(
                                 name = username.ifBlank {
-                                    phone.ifBlank {
-                                        email.ifBlank { "Pengguna M" }
-                                    }
+                                    phone.ifBlank { email.ifBlank { "Pengguna M" } }
                                 },
                                 number = phone,
                                 uid = targetUid
@@ -128,6 +116,7 @@ class MainActivity : ComponentActivity() {
 
                             showContacts = false
                             showProfile = false
+                            selectedTab = "Chat"
                             notificationUid.value = null
                         }
                         .addOnFailureListener { error ->
@@ -136,138 +125,175 @@ class MainActivity : ComponentActivity() {
                                 "Gagal membuka percakapan: ${error.localizedMessage}",
                                 Toast.LENGTH_LONG
                             ).show()
-
                             notificationUid.value = null
                         }
                 }
             }
 
             BackHandler(
-                enabled = selectedContact != null ||
-                    showContacts || showProfile
+                enabled = selectedContact != null || showContacts || showProfile
             ) {
                 when {
-                    selectedContact != null -> {
-                        selectedContact = null
-                    }
-
-                    showContacts -> {
+                    selectedContact != null -> selectedContact = null
+                    showContacts || showProfile -> {
                         showContacts = false
-                    }
-
-                    showProfile -> {
                         showProfile = false
+                        selectedTab = "Chat"
                     }
                 }
             }
 
             MaterialTheme {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .pointerInput(
-                            showHome,
-                            selectedContact,
-                            showContacts,
-                            showProfile
-                        ) {
-                            var totalDrag = 0f
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    bottomBar = {
+                        if (showHome && selectedContact == null) {
+                            NavigationBar {
+                                NavigationBarItem(
+                                    selected = selectedTab == "Chat",
+                                    onClick = {
+                                        selectedTab = "Chat"
+                                        showContacts = false
+                                        showProfile = false
+                                    },
+                                    icon = { Text("💬") },
+                                    label = { Text("Pesan") }
+                                )
 
-                            detectHorizontalDragGestures(
-                                onHorizontalDrag = { change, dragAmount ->
-                                    totalDrag += dragAmount
-                                    change.consume()
-                                },
-                                onDragEnd = {
-                                    if (showHome && selectedContact == null) {
-                                        if (totalDrag < -80f) {
-                                            when {
-                                                !showContacts && !showProfile -> {
-                                                    showContacts = true
-                                                    showProfile = false
-                                                }
+                                NavigationBarItem(
+                                    selected = selectedTab == "Kontak",
+                                    onClick = {
+                                        selectedTab = "Kontak"
+                                        showContacts = true
+                                        showProfile = false
+                                    },
+                                    icon = { Text("👥") },
+                                    label = { Text("Kontak") }
+                                )
 
-                                                showContacts -> {
-                                                    showContacts = false
-                                                    showProfile = true
-                                                }
-                                            }
-                                        } else if (totalDrag > 80f) {
-                                            when {
-                                                showProfile -> {
-                                                    showProfile = false
-                                                    showContacts = true
-                                                }
+                                NavigationBarItem(
+                                    selected = selectedTab == "Profil",
+                                    onClick = {
+                                        selectedTab = "Profil"
+                                        showContacts = false
+                                        showProfile = true
+                                    },
+                                    icon = { Text("👤") },
+                                    label = { Text("Profil") }
+                                )
+                            }
+                        }
+                    }
+                ) { innerPadding ->
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                            .pointerInput(
+                                showHome,
+                                selectedContact,
+                                showContacts,
+                                showProfile
+                            ) {
+                                var totalDrag = 0f
 
-                                                showContacts -> {
-                                                    showContacts = false
-                                                    showProfile = false
+                                detectHorizontalDragGestures(
+                                    onHorizontalDrag = { change, dragAmount ->
+                                        totalDrag += dragAmount
+                                        change.consume()
+                                    },
+                                    onDragEnd = {
+                                        if (showHome && selectedContact == null) {
+                                            if (totalDrag < -80f) {
+                                                when {
+                                                    !showContacts && !showProfile -> {
+                                                        showContacts = true
+                                                        showProfile = false
+                                                        selectedTab = "Kontak"
+                                                    }
+                                                    showContacts -> {
+                                                        showContacts = false
+                                                        showProfile = true
+                                                        selectedTab = "Profil"
+                                                    }
+                                                }
+                                            } else if (totalDrag > 80f) {
+                                                when {
+                                                    showProfile -> {
+                                                        showProfile = false
+                                                        showContacts = true
+                                                        selectedTab = "Kontak"
+                                                    }
+                                                    showContacts -> {
+                                                        showContacts = false
+                                                        showProfile = false
+                                                        selectedTab = "Chat"
+                                                    }
                                                 }
                                             }
                                         }
+                                        totalDrag = 0f
+                                    },
+                                    onDragCancel = { totalDrag = 0f }
+                                )
+                            }
+                    ) {
+                        when {
+                            !showHome -> {
+                                AuthScreen(
+                                    onContinueAsGuest = { showHome = true }
+                                )
+                            }
+
+                            selectedContact != null -> {
+                                ChatScreen(
+                                    contact = selectedContact!!,
+                                    onBack = { selectedContact = null }
+                                )
+                            }
+
+                            showContacts -> {
+                                ContactsScreen(
+                                    onBack = {
+                                        showContacts = false
+                                        selectedTab = "Chat"
+                                    },
+                                    onContactClick = { contact ->
+                                        selectedContact = contact
                                     }
+                                )
+                            }
 
-                                    totalDrag = 0f
-                                },
-                                onDragCancel = {
-                                    totalDrag = 0f
-                                }
-                            )
-                        }
-                ) {
-                    when {
-                        !showHome -> {
-                            AuthScreen(
-                                onContinueAsGuest = {
-                                    showHome = true
-                                }
-                            )
-                        }
+                            showProfile -> {
+                                ProfileScreen(
+                                    onBack = {
+                                        showProfile = false
+                                        selectedTab = "Chat"
+                                    },
+                                    onLoggedOut = {
+                                        showProfile = false
+                                        showHome = false
+                                    }
+                                )
+                            }
 
-                        selectedContact != null -> {
-                            ChatScreen(
-                                contact = selectedContact!!,
-                                onBack = {
-                                    selectedContact = null
-                                }
-                            )
-                        }
-
-                        showContacts -> {
-                            ContactsScreen(
-                                onBack = {
-                                    showContacts = false
-                                },
-                                onContactClick = { contact ->
-                                    selectedContact = contact
-                                }
-                            )
-                        }
-
-                        showProfile -> {
-                            ProfileScreen(
-                                onBack = {
-                                    showProfile = false
-                                },
-                                onLoggedOut = {
-                                    showProfile = false
-                                    showHome = false
-                                }
-                            )
-                        }
-
-                        else -> {
-                            MainScreen(
-                                onChatClick = { contact ->
-                                    selectedContact = contact
-                                },
-                                onContactsClick = {
-                                    showContacts = true
-                                },
-                                onProfileClick = {
-                                    showProfile = true
-                                }
-                            )
+                            else -> {
+                                MainScreen(
+                                    onChatClick = { contact ->
+                                        selectedContact = contact
+                                    },
+                                    onContactsClick = {
+                                        showContacts = true
+                                        showProfile = false
+                                        selectedTab = "Kontak"
+                                    },
+                                    onProfileClick = {
+                                        showProfile = true
+                                        showContacts = false
+                                        selectedTab = "Profil"
+                                    }
+                                )
+                            }
                         }
                     }
                 }
