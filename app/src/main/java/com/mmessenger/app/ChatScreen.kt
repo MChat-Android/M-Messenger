@@ -139,6 +139,24 @@ fun ChatScreen(
             conversationId(currentUid, contact.uid)
     }
 
+    var contactPhoto by remember(contact.uid) {
+        mutableStateOf(contact.photoBase64)
+    }
+
+    DisposableEffect(contact.uid) {
+        val registration = db.collection("users")
+            .document(contact.uid)
+            .addSnapshotListener { document, error ->
+                if (error == null && document != null && document.exists()) {
+                    contactPhoto = document.getString("photoBase64")
+                }
+            }
+
+        onDispose {
+            registration.remove()
+        }
+    }
+
     var messages by remember {
         mutableStateOf(listOf<ChatMessage>())
     }
@@ -194,8 +212,6 @@ fun ChatScreen(
                             )
                         }
 
-                        // Tandai pesan masuk sebagai sudah dibaca
-                        // ketika percakapan sedang dibuka.
                         val unreadMessages = snapshot.documents.filter {
                             it.getString("senderId") != currentUid &&
                             it.getString("status") != "read"
@@ -244,6 +260,14 @@ fun ChatScreen(
             }
 
             Spacer(Modifier.width(8.dp))
+
+            ProfileAvatar(
+                photoBase64 = contactPhoto,
+                name = contact.name,
+                size = 44.dp
+            )
+
+            Spacer(Modifier.width(10.dp))
 
             Column {
                 Text(
@@ -316,7 +340,8 @@ fun ChatScreen(
                             Row(
                                 modifier = Modifier.align(Alignment.End),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement =
+                                    Arrangement.spacedBy(4.dp)
                             ) {
                                 message.createdAt?.let { timestamp ->
                                     Text(
