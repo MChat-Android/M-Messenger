@@ -44,6 +44,10 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf(false)
             }
 
+            var showProfile by rememberSaveable {
+                mutableStateOf(false)
+            }
+
             var selectedContact by remember {
                 mutableStateOf<MatchedContact?>(null)
             }
@@ -116,6 +120,7 @@ class MainActivity : ComponentActivity() {
                             )
 
                             showContacts = false
+                            showProfile = false
                             notificationUid.value = null
                         }
                         .addOnFailureListener { error ->
@@ -131,12 +136,21 @@ class MainActivity : ComponentActivity() {
             }
 
             BackHandler(
-                enabled = selectedContact != null || showContacts
+                enabled = selectedContact != null ||
+                    showContacts || showProfile
             ) {
-                if (selectedContact != null) {
-                    selectedContact = null
-                } else if (showContacts) {
-                    showContacts = false
+                when {
+                    selectedContact != null -> {
+                        selectedContact = null
+                    }
+
+                    showContacts -> {
+                        showContacts = false
+                    }
+
+                    showProfile -> {
+                        showProfile = false
+                    }
                 }
             }
 
@@ -171,7 +185,18 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        
+                        showProfile -> {
+                            ProfileScreen(
+                                onBack = {
+                                    showProfile = false
+                                },
+                                onLoggedOut = {
+                                    showProfile = false
+                                    showHome = false
+                                }
+                            )
+                        }
+
                         else -> {
                             MainScreen(
                                 onChatClick = { contact ->
@@ -179,6 +204,9 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onContactsClick = {
                                     showContacts = true
+                                },
+                                onProfileClick = {
+                                    showProfile = true
                                 }
                             )
                         }
