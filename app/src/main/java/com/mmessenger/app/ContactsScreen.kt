@@ -1,4 +1,3 @@
-
 package com.mmessenger.app
 
 import android.Manifest
@@ -312,11 +311,6 @@ fun ContactsScreen(
                                 )
 
                                 Text(contact.number)
-
-                                Text(
-                                    "Pengguna M Messenger • Ketuk untuk chat",
-                                    color = MaterialTheme.colorScheme.primary
-                                )
                             }
                         }
 
