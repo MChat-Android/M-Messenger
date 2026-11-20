@@ -1,9 +1,9 @@
 
 package com.mmessenger.app
 
+import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.provider.ContactsContract
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -40,41 +40,74 @@ private data class HomeChatItem(
     val sortTime: Long
 )
 
+// Menyamakan format nomor telepon Indonesia.
+private fun normalizePhone(input: String): String? {
+    var digits = input.filter { it.isDigit() }
+
+    if (digits.startsWith("00")) {
+        digits = digits.drop(2)
+    }
+
+    if (digits.startsWith("0")) {
+        digits = "62" + digits.drop(1)
+    } else if (digits.startsWith("8")) {
+        digits = "62$digits"
+    }
+
+    if (!digits.startsWith("62")) return null
+    if (digits.length !in 10..15) return null
+
+    return digits
+}
+
 // Mencari nama berdasarkan nomor di buku kontak HP.
 private fun findSavedContactName(
     context: Context,
     phone: String
 ): String? {
-    if (phone.isBlank()) return null
-
     val permissionGranted =
         ContextCompat.checkSelfPermission(
             context,
-            android.Manifest.permission.READ_CONTACTS
+            Manifest.permission.READ_CONTACTS
         ) == PackageManager.PERMISSION_GRANTED
 
     if (!permissionGranted) return null
 
-    return try {
-        val uri = Uri.withAppendedPath(
-            ContactsContract.PhoneLookup.CONTENT_FILTER_URI,
-            Uri.encode(phone)
-        )
+    val targetNumber = normalizePhone(phone) ?: return null
 
+    return try {
         context.contentResolver.query(
-            uri,
+            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
             arrayOf(
-                ContactsContract.PhoneLookup.DISPLAY_NAME
+                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                ContactsContract.CommonDataKinds.Phone.NUMBER
             ),
             null,
             null,
             null
         )?.use { cursor ->
-            if (cursor.moveToFirst()) {
-                cursor.getString(0)?.takeIf { it.isNotBlank() }
-            } else {
-                null
+
+            val nameIndex = cursor.getColumnIndex(
+                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME
+            )
+
+            val numberIndex = cursor.getColumnIndex(
+                ContactsContract.CommonDataKinds.Phone.NUMBER
+            )
+
+            while (cursor.moveToNext()) {
+                val name = cursor.getString(nameIndex) ?: ""
+                val number = cursor.getString(numberIndex) ?: ""
+
+                if (
+                    normalizePhone(number) == targetNumber &&
+                    name.isNotBlank()
+                ) {
+                    return@use name
+                }
             }
+
+            null
         }
     } catch (e: Exception) {
         null
@@ -146,8 +179,8 @@ fun MainScreen(
                                         val phone =
                                             userDoc.getString("phoneNumber") ?: ""
 
-                                        // Gunakan nama dari kontak HP.
-                                        // Jika tidak tersimpan, tampilkan nomor.
+                                        // Nama kontak HP digunakan jika ditemukan.
+                                        // Jika tidak ditemukan, gunakan nomor telepon.
                                         val savedName =
                                             findSavedContactName(context, phone)
 
@@ -180,7 +213,8 @@ fun MainScreen(
                                             latestMessageQuery
                                                 .addSnapshotListener { messages, msgError ->
 
-                                                    if (msgError == null &&
+                                                    if (
+                                                        msgError == null &&
                                                         messages != null
                                                     ) {
                                                         val document =
