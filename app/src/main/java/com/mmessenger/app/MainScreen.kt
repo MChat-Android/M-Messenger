@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -122,6 +125,7 @@ fun MainScreen(
     onProfileClick: () -> Unit = {}
 ) {
     var search by remember { mutableStateOf("") }
+    var showSearch by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf("Chat") }
     var chats by remember { mutableStateOf(listOf<HomeChatItem>()) }
     var loading by remember { mutableStateOf(true) }
@@ -179,8 +183,6 @@ fun MainScreen(
                                         val phone =
                                             userDoc.getString("phoneNumber") ?: ""
 
-                                        // Nama kontak HP digunakan jika ditemukan.
-                                        // Jika tidak ditemukan, gunakan nomor telepon.
                                         val savedName =
                                             findSavedContactName(context, phone)
 
@@ -377,9 +379,32 @@ fun MainScreen(
 
                     Spacer(Modifier.weight(1f))
 
-                    Text("●", color = Color(0xFF16A34A))
-                    Spacer(Modifier.width(5.dp))
-                    Text("Online", color = Color.DarkGray)
+                    // IKON PENCARIAN / TUTUP
+                    IconButton(
+                        onClick = {
+                            if (showSearch) {
+                                showSearch = false
+                                search = ""
+                            } else {
+                                showSearch = true
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = if (showSearch) {
+                                Icons.Default.Close
+                            } else {
+                                Icons.Default.Search
+                            },
+                            contentDescription = if (showSearch) {
+                                "Tutup pencarian"
+                            } else {
+                                "Cari percakapan"
+                            },
+                            tint = Color(0xFF17233B),
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
                 }
             }
 
@@ -392,17 +417,28 @@ fun MainScreen(
                 )
             }
 
-            item {
-                OutlinedTextField(
-                    value = search,
-                    onValueChange = { search = it },
-                    placeholder = { Text("Cari percakapan...") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                )
+            // KOTAK PENCARIAN HANYA MUNCUL SAAT IKON DITEKAN
+            if (showSearch) {
+                item {
+                    OutlinedTextField(
+                        value = search,
+                        onValueChange = { search = it },
+                        placeholder = {
+                            Text("Cari percakapan...")
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = null
+                            )
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    )
+                }
             }
 
             item {
