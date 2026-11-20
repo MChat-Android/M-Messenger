@@ -126,7 +126,6 @@ fun MainScreen(
 ) {
     var search by remember { mutableStateOf("") }
     var showSearch by remember { mutableStateOf(false) }
-    var selectedTab by remember { mutableStateOf("Chat") }
     var chats by remember { mutableStateOf(listOf<HomeChatItem>()) }
     var loading by remember { mutableStateOf(true) }
 
@@ -294,45 +293,6 @@ fun MainScreen(
                 contentColor = Color.White
             ) {
                 Text("+", fontSize = 30.sp)
-            }
-        },
-        bottomBar = {
-            NavigationBar(containerColor = Color.White) {
-
-                NavigationBarItem(
-                    selected = selectedTab == "Chat",
-                    onClick = {
-                        selectedTab = "Chat"
-                    },
-                    icon = {
-                        Text("💬", fontSize = 21.sp)
-                    },
-                    label = { Text("Pesan") }
-                )
-
-                NavigationBarItem(
-                    selected = selectedTab == "Kontak",
-                    onClick = {
-                        selectedTab = "Kontak"
-                        onContactsClick()
-                    },
-                    icon = {
-                        Text("👥", fontSize = 21.sp)
-                    },
-                    label = { Text("Kontak") }
-                )
-
-                NavigationBarItem(
-                    selected = selectedTab == "Profil",
-                    onClick = {
-                        selectedTab = "Profil"
-                        onProfileClick()
-                    },
-                    icon = {
-                        Text("👤", fontSize = 21.sp)
-                    },
-                    label = { Text("Profil") }
-                )
             }
         }
     ) { padding ->
