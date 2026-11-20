@@ -197,14 +197,15 @@ fun ProfileScreen(
                     }
                 }
 
-                // IKON PENSIL DI SUDUT KANAN BAWAH
+                // IKON PENSIL: 30% DI DALAM, 70% DI LUAR BINGKAI
                 Surface(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .size(38.dp),
+                        .offset(x = 21.dp, y = 21.dp)
+                        .size(30.dp),
                     shape = CircleShape,
-                    color = Color(0xFF246BFD),
-                    shadowElevation = 4.dp,
+                    color = Color.Transparent,
+                    shadowElevation = 0.dp,
                     onClick = {
                         editing = true
                         message = ""
@@ -216,8 +217,8 @@ fun ProfileScreen(
                     ) {
                         Text(
                             text = "✎",
-                            color = Color.White,
-                            fontSize = 23.sp,
+                            color = Color(0xFF246BFD),
+                            fontSize = 19.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
