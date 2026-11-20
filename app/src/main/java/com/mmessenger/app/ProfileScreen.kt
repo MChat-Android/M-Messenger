@@ -146,20 +146,12 @@ fun ProfileScreen(
             .padding(20.dp)
     ) {
 
-        // BAGIAN JUDUL
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            TextButton(onClick = onBack) {
-                Text("← Kembali")
-            }
-
-            Text(
-                text = "Profil Saya",
-                fontSize = 23.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
+        // JUDUL PROFIL TANPA TOMBOL KEMBALI
+        Text(
+            text = "Profil Saya",
+            fontSize = 23.sp,
+            fontWeight = FontWeight.Bold
+        )
 
         Spacer(Modifier.height(30.dp))
 
