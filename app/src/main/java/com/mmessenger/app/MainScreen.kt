@@ -1,13 +1,16 @@
 
 package com.mmessenger.app
 
+import android.content.Context
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.ContactsContract
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,6 +21,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -36,6 +40,47 @@ private data class HomeChatItem(
     val sortTime: Long
 )
 
+// Mencari nama berdasarkan nomor di buku kontak HP.
+private fun findSavedContactName(
+    context: Context,
+    phone: String
+): String? {
+    if (phone.isBlank()) return null
+
+    val permissionGranted =
+        ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.READ_CONTACTS
+        ) == PackageManager.PERMISSION_GRANTED
+
+    if (!permissionGranted) return null
+
+    return try {
+        val uri = Uri.withAppendedPath(
+            ContactsContract.PhoneLookup.CONTENT_FILTER_URI,
+            Uri.encode(phone)
+        )
+
+        context.contentResolver.query(
+            uri,
+            arrayOf(
+                ContactsContract.PhoneLookup.DISPLAY_NAME
+            ),
+            null,
+            null,
+            null
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                cursor.getString(0)?.takeIf { it.isNotBlank() }
+            } else {
+                null
+            }
+        }
+    } catch (e: Exception) {
+        null
+    }
+}
+
 @Composable
 fun MainScreen(
     onChatClick: (MatchedContact) -> Unit = {},
@@ -49,6 +94,7 @@ fun MainScreen(
     var loading by remember { mutableStateOf(true) }
 
     val db = remember { FirebaseFirestore.getInstance() }
+    val context = androidx.compose.ui.platform.LocalContext.current
     val currentUid = FirebaseAuth.getInstance().currentUser?.uid
 
     DisposableEffect(currentUid) {
@@ -100,24 +146,24 @@ fun MainScreen(
                                         val phone =
                                             userDoc.getString("phoneNumber") ?: ""
 
-                                        val username =
-                                            userDoc.getString("name") ?: ""
+                                        // Gunakan nama dari kontak HP.
+                                        // Jika tidak tersimpan, tampilkan nomor.
+                                        val savedName =
+                                            findSavedContactName(context, phone)
 
-                                        val email =
-                                            userDoc.getString("email") ?: ""
-
-                                        val displayName = username.ifBlank {
-                                            phone.ifBlank {
-                                                email.ifBlank {
-                                                    "Pengguna M"
-                                                }
+                                        val displayName =
+                                            savedName ?: phone.ifBlank {
+                                                "Pengguna M"
                                             }
-                                        }
+
+                                        val photo =
+                                            userDoc.getString("photoBase64")
 
                                         val contact = MatchedContact(
                                             name = displayName,
                                             number = phone,
-                                            uid = otherUid
+                                            uid = otherUid,
+                                            photoBase64 = photo
                                         )
 
                                         val latestMessageQuery =
@@ -381,24 +427,11 @@ fun MainScreen(
                                     ),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(50.dp)
-                                        .background(
-                                            Color(0xFFEAF1FF),
-                                            CircleShape
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        chat.contact.name
-                                            .firstOrNull()
-                                            ?.uppercase() ?: "M",
-                                        color = MBlue,
-                                        fontSize = 21.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
+                                ProfileAvatar(
+                                    photoBase64 = chat.contact.photoBase64,
+                                    name = chat.contact.name,
+                                    size = 50.dp
+                                )
 
                                 Spacer(Modifier.width(13.dp))
 
