@@ -38,7 +38,10 @@ private data class ChatMessage(
     val status: String
 )
 
-private fun conversationId(firstUid: String, secondUid: String): String =
+private fun conversationId(
+    firstUid: String,
+    secondUid: String
+): String =
     listOf(firstUid, secondUid).sorted().joinToString("_")
 
 private fun sendNotificationRequest(
@@ -128,7 +131,8 @@ private fun sendNotificationRequest(
 @Composable
 fun ChatScreen(
     contact: MatchedContact,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onCallClick: (String) -> Unit = {}
 ) {
     val auth = remember { FirebaseAuth.getInstance() }
     val db = remember { FirebaseFirestore.getInstance() }
@@ -248,18 +252,17 @@ fun ChatScreen(
             .background(Color(0xFFF7F9FE))
     ) {
 
+        // HEADER CHAT
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color.White)
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = 8.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             TextButton(onClick = onBack) {
-                Text("← Kembali")
+                Text("←")
             }
-
-            Spacer(Modifier.width(8.dp))
 
             ProfileAvatar(
                 photoBase64 = contactPhoto,
@@ -269,7 +272,9 @@ fun ChatScreen(
 
             Spacer(Modifier.width(10.dp))
 
-            Column {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
                 Text(
                     contact.name,
                     style = MaterialTheme.typography.titleMedium
@@ -280,6 +285,18 @@ fun ChatScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )
+            }
+
+            IconButton(
+                onClick = { onCallClick("audio") }
+            ) {
+                Text("📞")
+            }
+
+            IconButton(
+                onClick = { onCallClick("video") }
+            ) {
+                Text("📹")
             }
         }
 
@@ -381,6 +398,7 @@ fun ChatScreen(
             }
         }
 
+        // KOLOM KIRIM PESAN
         Row(
             modifier = Modifier
                 .fillMaxWidth()
