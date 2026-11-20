@@ -31,7 +31,8 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        notificationUidState?.value = intent.getStringExtra("openChatWith")
+        notificationUidState?.value =
+            intent.getStringExtra("openChatWith")
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,32 +40,58 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             var showHome by rememberSaveable {
-                mutableStateOf(FirebaseAuth.getInstance().currentUser != null)
+                mutableStateOf(
+                    FirebaseAuth.getInstance().currentUser != null
+                )
             }
 
-            var showContacts by rememberSaveable { mutableStateOf(false) }
-            var showProfile by rememberSaveable { mutableStateOf(false) }
-            var selectedTab by rememberSaveable { mutableStateOf("Chat") }
+            var showContacts by rememberSaveable {
+                mutableStateOf(false)
+            }
+
+            var showProfile by rememberSaveable {
+                mutableStateOf(false)
+            }
+
+            var selectedTab by rememberSaveable {
+                mutableStateOf("Chat")
+            }
 
             var selectedContact by remember {
                 mutableStateOf<MatchedContact?>(null)
             }
 
-            val notificationUid = remember {
-                mutableStateOf(intent.getStringExtra("openChatWith"))
+            var activeCall by remember {
+                mutableStateOf<MCall?>(null)
             }
+
+            var incomingCall by remember {
+                mutableStateOf<MCall?>(null)
+            }
+
+            val notificationUid = remember {
+                mutableStateOf(
+                    intent.getStringExtra("openChatWith")
+                )
+            }
+
             notificationUidState = notificationUid
 
+            // SIMPAN TOKEN NOTIFIKASI PENGGUNA
             LaunchedEffect(showHome) {
                 val user = FirebaseAuth.getInstance().currentUser
 
                 if (showHome && user != null) {
-                    if (Build.VERSION.SDK_INT >= 33 &&
-                        checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
-                        != PackageManager.PERMISSION_GRANTED
+                    if (
+                        Build.VERSION.SDK_INT >= 33 &&
+                        checkSelfPermission(
+                            Manifest.permission.POST_NOTIFICATIONS
+                        ) != PackageManager.PERMISSION_GRANTED
                     ) {
                         requestPermissions(
-                            arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                            arrayOf(
+                                Manifest.permission.POST_NOTIFICATIONS
+                            ),
                             1001
                         )
                     }
@@ -92,23 +119,36 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+            // MEMBUKA CHAT DARI NOTIFIKASI
             LaunchedEffect(notificationUid.value, showHome) {
                 val targetUid = notificationUid.value
                 val user = FirebaseAuth.getInstance().currentUser
 
-                if (!targetUid.isNullOrBlank() && showHome && user != null) {
+                if (
+                    !targetUid.isNullOrBlank() &&
+                    showHome &&
+                    user != null
+                ) {
                     FirebaseFirestore.getInstance()
                         .collection("users")
                         .document(targetUid)
                         .get()
                         .addOnSuccessListener { document ->
-                            val phone = document.getString("phoneNumber") ?: ""
-                            val username = document.getString("name") ?: ""
-                            val email = document.getString("email") ?: ""
+
+                            val phone =
+                                document.getString("phoneNumber") ?: ""
+
+                            val username =
+                                document.getString("name") ?: ""
+
+                            val email =
+                                document.getString("email") ?: ""
 
                             selectedContact = MatchedContact(
                                 name = username.ifBlank {
-                                    phone.ifBlank { email.ifBlank { "Pengguna M" } }
+                                    phone.ifBlank {
+                                        email.ifBlank { "Pengguna M" }
+                                    }
                                 },
                                 number = phone,
                                 uid = targetUid
@@ -125,16 +165,58 @@ class MainActivity : ComponentActivity() {
                                 "Gagal membuka percakapan: ${error.localizedMessage}",
                                 Toast.LENGTH_LONG
                             ).show()
+
                             notificationUid.value = null
                         }
                 }
             }
 
+            // MENDENGARKAN PANGGILAN MASUK
+            DisposableEffect(showHome) {
+                val uid =
+                    FirebaseAuth.getInstance().currentUser?.uid
+
+                if (!showHome || uid == null) {
+                    onDispose { }
+                } else {
+                    val registration =
+                        CallManager.listenIncomingCalls(uid) { call ->
+
+                            if (
+                                activeCall == null &&
+                                incomingCall == null
+                            ) {
+                                incomingCall = call
+                            }
+                        }
+
+                    onDispose {
+                        registration.remove()
+                    }
+                }
+            }
+
+            // TOMBOL KEMBALI
             BackHandler(
-                enabled = selectedContact != null || showContacts || showProfile
+                enabled =
+                    activeCall != null ||
+                    selectedContact != null ||
+                    showContacts ||
+                    showProfile
             ) {
                 when {
-                    selectedContact != null -> selectedContact = null
+                    activeCall != null -> {
+                        val call = activeCall!!
+
+                        CallManager.endCall(call.id) {
+                            activeCall = null
+                        }
+                    }
+
+                    selectedContact != null -> {
+                        selectedContact = null
+                    }
+
                     showContacts || showProfile -> {
                         showContacts = false
                         showProfile = false
@@ -144,11 +226,81 @@ class MainActivity : ComponentActivity() {
             }
 
             MaterialTheme {
+
+                // DIALOG PANGGILAN MASUK
+                incomingCall?.let { call ->
+
+                    AlertDialog(
+                        onDismissRequest = {},
+
+                        title = {
+                            Text(
+                                if (call.callType == "video") {
+                                    "Panggilan Video Masuk"
+                                } else {
+                                    "Panggilan Suara Masuk"
+                                }
+                            )
+                        },
+
+                        text = {
+                            Text(
+                                "Seseorang sedang menghubungi Anda melalui M Messenger."
+                            )
+                        },
+
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    CallManager.acceptCall(call.id) { result ->
+
+                                        result.onSuccess {
+                                            activeCall = call.copy(
+                                                status = "accepted"
+                                            )
+
+                                            incomingCall = null
+                                        }
+
+                                        result.onFailure {
+                                            Toast.makeText(
+                                                this@MainActivity,
+                                                "Gagal menerima panggilan: ${it.localizedMessage}",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                        }
+                                    }
+                                }
+                            ) {
+                                Text("Terima")
+                            }
+                        },
+
+                        dismissButton = {
+                            TextButton(
+                                onClick = {
+                                    CallManager.rejectCall(call.id) {
+                                        incomingCall = null
+                                    }
+                                }
+                            ) {
+                                Text("Tolak")
+                            }
+                        }
+                    )
+                }
+
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
+
                     bottomBar = {
-                        if (showHome && selectedContact == null) {
+                        if (
+                            showHome &&
+                            selectedContact == null &&
+                            activeCall == null
+                        ) {
                             NavigationBar {
+
                                 NavigationBarItem(
                                     selected = selectedTab == "Chat",
                                     onClick = {
@@ -184,7 +336,9 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+
                 ) { innerPadding ->
+
                     Surface(
                         modifier = Modifier
                             .fillMaxSize()
@@ -193,7 +347,8 @@ class MainActivity : ComponentActivity() {
                                 showHome,
                                 selectedContact,
                                 showContacts,
-                                showProfile
+                                showProfile,
+                                activeCall
                             ) {
                                 var totalDrag = 0f
 
@@ -202,15 +357,22 @@ class MainActivity : ComponentActivity() {
                                         totalDrag += dragAmount
                                         change.consume()
                                     },
+
                                     onDragEnd = {
-                                        if (showHome && selectedContact == null) {
+                                        if (
+                                            showHome &&
+                                            selectedContact == null &&
+                                            activeCall == null
+                                        ) {
                                             if (totalDrag < -80f) {
                                                 when {
-                                                    !showContacts && !showProfile -> {
+                                                    !showContacts &&
+                                                    !showProfile -> {
                                                         showContacts = true
                                                         showProfile = false
                                                         selectedTab = "Kontak"
                                                     }
+
                                                     showContacts -> {
                                                         showContacts = false
                                                         showProfile = true
@@ -224,6 +386,7 @@ class MainActivity : ComponentActivity() {
                                                         showContacts = true
                                                         selectedTab = "Kontak"
                                                     }
+
                                                     showContacts -> {
                                                         showContacts = false
                                                         showProfile = false
@@ -232,44 +395,116 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             }
                                         }
+
                                         totalDrag = 0f
                                     },
-                                    onDragCancel = { totalDrag = 0f }
+
+                                    onDragCancel = {
+                                        totalDrag = 0f
+                                    }
                                 )
                             }
                     ) {
+
                         when {
+
                             !showHome -> {
                                 AuthScreen(
-                                    onContinueAsGuest = { showHome = true }
+                                    onContinueAsGuest = {
+                                        showHome = true
+                                    }
                                 )
                             }
 
+                            // LAYAR PANGGILAN
+                            activeCall != null -> {
+                                val call = activeCall!!
+
+                                AgoraCallScreen(
+                                    callId = call.id,
+                                    channelName = call.channelName,
+                                    callType = call.callType,
+                                    onCallEnded = {
+                                        activeCall = null
+                                    }
+                                )
+                            }
+
+                            // HALAMAN CHAT
                             selectedContact != null -> {
                                 ChatScreen(
                                     contact = selectedContact!!,
-                                    onBack = { selectedContact = null }
+
+                                    onBack = {
+                                        selectedContact = null
+                                    },
+
+                                    onCallClick = { type ->
+
+                                        val uid =
+                                            FirebaseAuth.getInstance()
+                                                .currentUser?.uid
+
+                                        val receiverUid =
+                                            selectedContact?.uid
+
+                                        if (
+                                            uid != null &&
+                                            receiverUid != null
+                                        ) {
+                                            CallManager.createCall(
+                                                callerId = uid,
+                                                receiverId = receiverUid,
+                                                callType = type
+                                            ) { result ->
+
+                                                result.onSuccess { callId ->
+
+                                                    activeCall = MCall(
+                                                        id = callId,
+                                                        callerId = uid,
+                                                        receiverId = receiverUid,
+                                                        channelName = "mcall_$callId",
+                                                        callType = type,
+                                                        status = "ringing"
+                                                    )
+                                                }
+
+                                                result.onFailure { error ->
+                                                    Toast.makeText(
+                                                        this@MainActivity,
+                                                        "Panggilan gagal: ${error.localizedMessage}",
+                                                        Toast.LENGTH_LONG
+                                                    ).show()
+                                                }
+                                            }
+                                        }
+                                    }
                                 )
                             }
 
+                            // HALAMAN KONTAK
                             showContacts -> {
                                 ContactsScreen(
                                     onBack = {
                                         showContacts = false
                                         selectedTab = "Chat"
                                     },
+
                                     onContactClick = { contact ->
                                         selectedContact = contact
                                     }
                                 )
                             }
 
+                            // HALAMAN PROFIL
                             showProfile -> {
                                 ProfileScreen(
                                     onBack = {
                                         showProfile = false
                                         selectedTab = "Chat"
                                     },
+
                                     onLoggedOut = {
                                         showProfile = false
                                         showHome = false
@@ -277,16 +512,19 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
 
+                            // HALAMAN UTAMA
                             else -> {
                                 MainScreen(
                                     onChatClick = { contact ->
                                         selectedContact = contact
                                     },
+
                                     onContactsClick = {
                                         showContacts = true
                                         showProfile = false
                                         selectedTab = "Kontak"
                                     },
+
                                     onProfileClick = {
                                         showProfile = true
                                         showContacts = false
