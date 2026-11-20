@@ -108,7 +108,7 @@ class MainActivity : ComponentActivity() {
 
                     userDoc.set(profile, SetOptions.merge())
                         .addOnSuccessListener {
-                            FirebaseMessaging.getInstance().token
+                            FirebaseMessaging.getInstance().getToken()
                                 .addOnSuccessListener { token ->
                                     userDoc.set(
                                         mapOf("fcmToken" to token),
