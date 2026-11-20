@@ -1,0 +1,7 @@
+name = "m-messenger-agora-token"
+main = "src/index.js"
+compatibility_date = "2026-11-20"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+FIREBASE_PROJECT_ID = "m-messenger-9d903"
