@@ -5,7 +5,6 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.provider.ContactsContract
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,15 +12,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -125,12 +123,21 @@ fun MainScreen(
     onProfileClick: () -> Unit = {}
 ) {
     var search by remember { mutableStateOf("") }
-    var showSearch by remember { mutableStateOf(false) }
-    var chats by remember { mutableStateOf(listOf<HomeChatItem>()) }
-    var loading by remember { mutableStateOf(true) }
 
-    val db = remember { FirebaseFirestore.getInstance() }
+    var chats by remember {
+        mutableStateOf(listOf<HomeChatItem>())
+    }
+
+    var loading by remember {
+        mutableStateOf(true)
+    }
+
+    val db = remember {
+        FirebaseFirestore.getInstance()
+    }
+
     val context = androidx.compose.ui.platform.LocalContext.current
+
     val currentUid = FirebaseAuth.getInstance().currentUser?.uid
 
     DisposableEffect(currentUid) {
@@ -271,9 +278,11 @@ fun MainScreen(
 
             onDispose {
                 registration.remove()
+
                 messageListeners.values.forEach {
                     it.remove()
                 }
+
                 messageListeners.clear()
             }
         }
@@ -285,7 +294,6 @@ fun MainScreen(
     }
 
     Scaffold(
-        containerColor = Color.White,
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onNewChat,
@@ -300,114 +308,64 @@ fun MainScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .background(Color.White),
+                .padding(padding),
             contentPadding = PaddingValues(bottom = 16.dp)
         ) {
 
+            // JUDUL APLIKASI TANPA IKON
             item {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFFEAF1FF))
-                        .padding(20.dp),
+                        .padding(
+                            start = 20.dp,
+                            end = 20.dp,
+                            top = 22.dp,
+                            bottom = 16.dp
+                        ),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Image(
-                        painter = painterResource(
-                            id = R.mipmap.ic_launcher
-                        ),
-                        contentDescription = "Logo M Messenger",
-                        modifier = Modifier.size(48.dp)
+                    Text(
+                        text = "M Messenger",
+                        fontSize = 27.sp,
+                        fontWeight = FontWeight.Bold
                     )
+                }
+            }
 
-                    Spacer(Modifier.width(12.dp))
-
-                    Column {
+            // KOLOM PENCARIAN
+            item {
+                OutlinedTextField(
+                    value = search,
+                    onValueChange = {
+                        search = it
+                    },
+                    placeholder = {
                         Text(
-                            "M Messenger",
-                            fontSize = 21.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF17233B)
+                            "Cari percakapan...",
+                            fontSize = 16.sp
                         )
-                        Text(
-                            "Stay Connected",
-                            color = Color.Gray,
-                            fontSize = 12.sp
-                        )
-                    }
-
-                    Spacer(Modifier.weight(1f))
-
-                    // IKON PENCARIAN / TUTUP
-                    IconButton(
-                        onClick = {
-                            if (showSearch) {
-                                showSearch = false
-                                search = ""
-                            } else {
-                                showSearch = true
-                            }
-                        }
-                    ) {
+                    },
+                    leadingIcon = {
                         Icon(
-                            imageVector = if (showSearch) {
-                                Icons.Default.Close
-                            } else {
-                                Icons.Default.Search
-                            },
-                            contentDescription = if (showSearch) {
-                                "Tutup pencarian"
-                            } else {
-                                "Cari percakapan"
-                            },
-                            tint = Color(0xFF17233B),
-                            modifier = Modifier.size(26.dp)
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Cari"
                         )
-                    }
-                }
-            }
-
-            item {
-                Text(
-                    "Pesan",
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(20.dp)
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(40.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = 16.dp,
+                            vertical = 8.dp
+                        )
                 )
             }
 
-            // KOTAK PENCARIAN HANYA MUNCUL SAAT IKON DITEKAN
-            if (showSearch) {
-                item {
-                    OutlinedTextField(
-                        value = search,
-                        onValueChange = { search = it },
-                        placeholder = {
-                            Text("Cari percakapan...")
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = null
-                            )
-                        },
-                        singleLine = true,
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                    )
-                }
-            }
-
+            // JARAK ANTARA PENCARIAN DAN DAFTAR PESAN
             item {
-                Text(
-                    "Pesan terbaru",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    modifier = Modifier.padding(16.dp)
-                )
+                Spacer(modifier = Modifier.height(12.dp))
             }
 
             when {
@@ -433,66 +391,91 @@ fun MainScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                if (search.isNotBlank())
+                                if (search.isNotBlank()) {
                                     "Percakapan tidak ditemukan"
-                                else
+                                } else {
                                     "Belum ada percakapan"
+                                }
                             )
                         }
                     }
                 }
 
                 else -> {
-                    items(filtered, key = { it.id }) { chat ->
-                        Column {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        onChatClick(chat.contact)
-                                    }
-                                    .padding(
-                                        horizontal = 16.dp,
-                                        vertical = 13.dp
-                                    ),
-                                verticalAlignment = Alignment.CenterVertically
+                    items(
+                        filtered,
+                        key = { it.id }
+                    ) { chat ->
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onChatClick(chat.contact)
+                                }
+                                .padding(
+                                    horizontal = 18.dp,
+                                    vertical = 17.dp
+                                ),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+
+                            // FOTO KONTAK
+                            ProfileAvatar(
+                                photoBase64 = chat.contact.photoBase64,
+                                name = chat.contact.name,
+                                size = 58.dp
+                            )
+
+                            Spacer(
+                                modifier = Modifier.width(14.dp)
+                            )
+
+                            // NAMA DAN PESAN TERAKHIR
+                            Column(
+                                modifier = Modifier.weight(1f)
                             ) {
-                                ProfileAvatar(
-                                    photoBase64 = chat.contact.photoBase64,
-                                    name = chat.contact.name,
-                                    size = 50.dp
+                                Text(
+                                    text = chat.contact.name,
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
 
-                                Spacer(Modifier.width(13.dp))
-
-                                Column(
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Text(
-                                        chat.contact.name,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 15.sp
-                                    )
-
-                                    Text(
-                                        chat.message,
-                                        color = Color.Gray,
-                                        fontSize = 13.sp,
-                                        maxLines = 1
-                                    )
-                                }
+                                Spacer(
+                                    modifier = Modifier.height(5.dp)
+                                )
 
                                 Text(
-                                    chat.time,
-                                    fontSize = 11.sp,
-                                    color = Color.Gray
+                                    text = chat.message,
+                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
 
-                            HorizontalDivider(
-                                color = Color(0xFFF0F0F0)
+                            Spacer(
+                                modifier = Modifier.width(8.dp)
+                            )
+
+                            // WAKTU PESAN
+                            Text(
+                                text = chat.time,
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+
+                        HorizontalDivider(
+                            modifier = Modifier.padding(
+                                start = 90.dp
+                            ),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(
+                                alpha = 0.35f
+                            )
+                        )
                     }
                 }
             }
