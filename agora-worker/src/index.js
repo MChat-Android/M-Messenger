@@ -1,7 +1,6 @@
-import { createRemoteJWKSet, jwtVerify } from "jose";
-import agoraToken from "agora-token";
 
-const { RtcTokenBuilder, Role } = agoraToken;
+import { createRemoteJWKSet, jwtVerify } from "jose";
+import { RtcTokenBuilder, RtcRole } from "agora-token";
 
 const FIREBASE_KEYS = createRemoteJWKSet(
   new URL(
@@ -117,7 +116,7 @@ export default {
         env.AGORA_APP_CERTIFICATE,
         channelName,
         userAccount,
-        Role.PUBLISHER,
+        RtcRole.PUBLISHER,
         TOKEN_LIFETIME,
         TOKEN_LIFETIME
       );
