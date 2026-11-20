@@ -161,12 +161,12 @@ fun ProfileScreen(
             contentAlignment = Alignment.Center
         ) {
             Box(
-                modifier = Modifier.size(140.dp),
+                modifier = Modifier.size(120.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Box(
                     modifier = Modifier
-                        .size(120.dp)
+                        .fillMaxSize()
                         .clip(CircleShape)
                         .background(Color(0xFFEAF1FF)),
                     contentAlignment = Alignment.Center
@@ -184,33 +184,6 @@ fun ProfileScreen(
                                 ?.uppercase() ?: "M",
                             fontSize = 42.sp,
                             color = Color(0xFF246BFD),
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
-                // IKON PENSIL: 30% DI DALAM, 70% DI LUAR BINGKAI
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .offset(x = 21.dp, y = 21.dp)
-                        .size(30.dp),
-                    shape = CircleShape,
-                    color = Color.Transparent,
-                    shadowElevation = 0.dp,
-                    onClick = {
-                        editing = true
-                        message = ""
-                        imagePicker.launch("image/*")
-                    }
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "✎",
-                            color = Color(0xFF246BFD),
-                            fontSize = 19.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -237,11 +210,38 @@ fun ProfileScreen(
             }
         } else {
 
-            Text(
-                text = "Informasi Akun",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
+            // INFORMASI AKUN DAN IKON PENSIL DI SEBELAH KANAN
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Informasi Akun",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(Modifier.width(8.dp))
+
+                TextButton(
+                    onClick = {
+                        editing = true
+                        message = ""
+                        imagePicker.launch("image/*")
+                    },
+                    contentPadding = PaddingValues(
+                        horizontal = 4.dp,
+                        vertical = 0.dp
+                    )
+                ) {
+                    Text(
+                        text = "✎",
+                        color = Color(0xFF246BFD),
+                        fontSize = 23.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
 
             Spacer(Modifier.height(15.dp))
 
@@ -332,7 +332,7 @@ fun ProfileScreen(
 
         Spacer(Modifier.height(35.dp))
 
-        // KELUAR DI POJOK KIRI BAWAH
+        // IKON DAYA MERAH DAN TOMBOL KELUAR
         if (user != null) {
             TextButton(
                 onClick = {
@@ -346,8 +346,8 @@ fun ProfileScreen(
             ) {
                 Text(
                     text = "⏻",
-                    color = Color.Red,
-                    fontSize = 27.sp,
+                    color = Color(0xFFFF3030),
+                    fontSize = 30.sp,
                     fontWeight = FontWeight.Bold
                 )
 
@@ -355,7 +355,7 @@ fun ProfileScreen(
 
                 Text(
                     text = "Keluar",
-                    color = Color.Red,
+                    color = Color(0xFFFF3030),
                     fontSize = 16.sp
                 )
             }
